@@ -1,1 +1,7 @@
 To-do list
+
+General Tasks:
+- Housekeeping/Boilerplate
+- Configure I/O Ports
+- Configure/Initialize LCD 16X2
+- Create Lookup-Table

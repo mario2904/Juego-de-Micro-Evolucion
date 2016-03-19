@@ -1,0 +1,14 @@
+To-do list
+
+General tasks
+- Housekeeping/BoilerPlate
+- Organize/Configure I/O Ports
+- Initialize/Configure LCD 16X2
+- Create Lookup Table
+
+Logic of the game
+- Display initial message to user
+  "Press Button to Start"
+- Loop to wait for user to press button
+- Start by assigning level 0
+  store value of current level

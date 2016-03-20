@@ -7,7 +7,7 @@ General Tasks:
     + Implement command subroutine
     + Implement write sub routine
     + Implement delay of >= 300ns
-    - Implement delay of >= 15ms
-    - Implement delay of >= 5ms
-    - Implement delay of >= 160us
+    + Implement delay of >= 15ms
+    + Implement delay of >= 5ms
+    + Implement delay of >= 160us
 + Create Lookup-Table

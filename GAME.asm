@@ -8,7 +8,7 @@ StopWDT     mov     #WDTPW+WDTHOLD, &WDTCTL ; Stop WDT
 ;------------------------------------------------------------------------------
 ;                   Configure Ports
 ;------------------------------------------------------------------------------
-            bis.b   #FFh, &P1DIR            ; Set all ports of P1 as output
+            bis.b   #0FFh, &P1DIR           ; Set all ports of P1 as output
                                             ; For use with the LCD 16X2
                                             ; In 8-bit mode
             bis.b   #02h, &P2DIR            ; Set P2.0 and P2.1 as output
@@ -21,7 +21,26 @@ StopWDT     mov     #WDTPW+WDTHOLD, &WDTCTL ; Stop WDT
 ;                   Initialize LCD
 ;------------------------------------------------------------------------------
             bic.b   #01h, &P1OUT            ; Turn off ENABLE
-
+            call    #DELAY15M               ; Wait for 15ms
+            mov.b   #030h, R14              ; Load command Wake
+            call    #COMMAND                ; Send command to Wake LCD #1
+            call    #DELAY5M                ; Wait for 5ms
+            mov.b   #030h, R14              ; Load command Wake
+            call    #COMMAND                ; Send command to Wake LCD #2
+            call    #DELAY160U              ; Wait for 160us
+            mov.b   #030h, R14              ; Load command Wake
+            call    #COMMAND                ; Send command to Wake LCD #3
+            call    #DELAY160U              ; Wait for 160us
+            mov.b   #038h, R14              ; Load command set 8-bit/2-line
+            call    #COMMAND                ; Send command to set 8-bit/2-line
+            mov.b   #010h, R14              ; Load command set cursor
+            call    #COMMAND                ; Send command to set cursor
+            mov.b   #0Ch, R14               ; Load command Turn on the
+                                            ; Display and Cursor
+            call    #COMMAND                ; Send command to Turn on the
+                                            ; Display and Cursor
+            mov.b   #06h, R14               ; Load command Entry mode set
+            call    #COMMAND                ; Send command Entry mode set
 
 
 
@@ -31,9 +50,9 @@ StopWDT     mov     #WDTPW+WDTHOLD, &WDTCTL ; Stop WDT
 ;------------------------------------------------------------------------------
 ;                   P2.0 = ENABLE
 ;                   P2.1 = RESGISTER SELECT
-;                   2(SP)= COMMAND
+;                   R14  = COMMAND
 ;------------------------------------------------------------------------------
-COMMAND     mov.b   2(SP), &P1OUT           ; Load COMMAND in Port 1
+COMMAND     mov.b   R14, &P1OUT             ; Load COMMAND in Port 1
             bic.b   #02h, &P2OUT            ; Turn off REGISTER SELECT
             bis.b   #01h, &P2OUT            ; Turn on ENABLE
 ;------------------------------------------------------------------------------
@@ -48,9 +67,9 @@ COMMAND     mov.b   2(SP), &P1OUT           ; Load COMMAND in Port 1
 ;------------------------------------------------------------------------------
 ;                   P2.0 = ENABLE
 ;                   P2.1 = RESGISTER SELECT
-;                   2(SP)= SYMBOL (LETTER/NUMBER)
+;                   R14  = SYMBOL (LETTER/NUMBER)
 ;------------------------------------------------------------------------------
-WRITE       mov.b   2(SP), &P1OUT           ; Load SYMBOL in Port 1
+WRITE       mov.b   R14, &P1OUT             ; Load SYMBOL in Port 1
             bis.b   #02h, &P2OUT            ; Turn on REGISTER SELECT
             bis.b   #01h, &P2OUT            ; Turn on ENABLE
 ;------------------------------------------------------------------------------
@@ -58,6 +77,30 @@ WRITE       mov.b   2(SP), &P1OUT           ; Load SYMBOL in Port 1
             dec     R15
 ;------------------------------------------------------------------------------
             bic.b   #01h, &P2OUT            ; Turn off ENABLE
+            ret
+
+;------------------------------------------------------------------------------
+;              SUBROUTINE DELAY15m (15.001ms)(OVERALL cycles = 14,993 + 8 = 15,001)
+;------------------------------------------------------------------------------
+DELAY15M    mov     #4997, R15
+DELAY15MA   dec     R15
+            jnz     DELAY15MA
+            ret
+
+;------------------------------------------------------------------------------
+;              SUBROUTINE DELAY5m (5.002ms)(OVERALL cycles = 4,994 + 8 = 5,002)
+;------------------------------------------------------------------------------
+DELAY5M     mov     #1664, R15
+DELAY5MA    dec     R15
+            jnz     DELAY5MA
+            ret
+
+;------------------------------------------------------------------------------
+;              SUBROUTINE DELAY160U (160us)(OVERALL cycles = 152 + 8 = 160)
+;------------------------------------------------------------------------------
+DELAY160U   mov     #50, R15
+DELAY160UA  dec     R15
+            jnz     DELAY160UA
             ret
 
 ;------------------------------------------------------------------------------

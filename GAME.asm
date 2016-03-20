@@ -5,6 +5,23 @@
 RESET       mov     #0280h, SP              ; Initialize Stackpointer
 StopWDT     mov     #WDTPW+WDTHOLD, &WDTCTL ; Stop WDT
 
+;------------------------------------------------------------------------------
+;                   Configure Ports
+;------------------------------------------------------------------------------
+            bis.b   #FFh, &P1DIR            ; Set all ports of P1 as output
+                                            ; For use with the LCD 16X2
+                                            ; In 8-bit mode
+            bis.b   #02h, &P2DIR            ; Set P2.0 and P2.1 as output
+                                            ; For use as ENABLE and
+                                            ; REGISTER SELECT of the LCD 16X2
+            bic.b   #0Ch, &P2DIR            ; Set P2.2 and P2.3 as input
+                                            ; For use with the two buttons
+
+;------------------------------------------------------------------------------
+;                   Initialize LCD
+;------------------------------------------------------------------------------
+
+
 
 
 ;------------------------------------------------------------------------------

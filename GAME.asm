@@ -11,7 +11,7 @@ StopWDT     mov     #WDTPW+WDTHOLD, &WDTCTL ; Stop WDT
             bis.b   #0FFh, &P1DIR           ; Set all ports of P1 as output
                                             ; For use with the LCD 16X2
                                             ; In 8-bit mode
-            bis.b   #02h, &P2DIR            ; Set P2.0 and P2.1 as output
+            bis.b   #03h, &P2DIR            ; Set P2.0 and P2.1 as output
                                             ; For use as ENABLE and
                                             ; REGISTER SELECT of the LCD 16X2
             bic.b   #0Ch, &P2DIR            ; Set P2.2 and P2.3 as input
@@ -23,27 +23,30 @@ StopWDT     mov     #WDTPW+WDTHOLD, &WDTCTL ; Stop WDT
             bic.b   #01h, &P1OUT            ; Turn off ENABLE
             call    #DELAY15M               ; Wait for 15ms
             mov.b   #030h, R14              ; Load command Wake
-            call    #COMMAND                ; Send command to Wake LCD #1
+            call    #COMMANDLCD             ; Send command to Wake LCD #1
             call    #DELAY5M                ; Wait for 5ms
             mov.b   #030h, R14              ; Load command Wake
-            call    #COMMAND                ; Send command to Wake LCD #2
+            call    #COMMANDLCD             ; Send command to Wake LCD #2
             call    #DELAY160U              ; Wait for 160us
             mov.b   #030h, R14              ; Load command Wake
-            call    #COMMAND                ; Send command to Wake LCD #3
+            call    #COMMANDLCD             ; Send command to Wake LCD #3
             call    #DELAY160U              ; Wait for 160us
             mov.b   #038h, R14              ; Load command set 8-bit/2-line
-            call    #COMMAND                ; Send command to set 8-bit/2-line
+            call    #COMMANDLCD             ; Send command to set 8-bit/2-line
             mov.b   #010h, R14              ; Load command set cursor
-            call    #COMMAND                ; Send command to set cursor
+            call    #COMMANDLCD             ; Send command to set cursor
             mov.b   #0Ch, R14               ; Load command Turn on the
                                             ; Display and Cursor
-            call    #COMMAND                ; Send command to Turn on the
+            call    #COMMANDLCD             ; Send command to Turn on the
                                             ; Display and Cursor
             mov.b   #06h, R14               ; Load command Entry mode set
-            call    #COMMAND                ; Send command Entry mode set
+            call    #COMMANDLCD             ; Send command Entry mode set
+            mov.b   #01h, R14               ; Load command Clear Display
+            call    #COMMANDLCD             ; Send command to Clear Display
 
+            call    #DELAY15M
 
-
+HERE        jmp     HERE
 
 ;------------------------------------------------------------------------------
 ;                   LCD - Command Subroutine
@@ -52,7 +55,7 @@ StopWDT     mov     #WDTPW+WDTHOLD, &WDTCTL ; Stop WDT
 ;                   P2.1 = RESGISTER SELECT
 ;                   R14  = COMMAND
 ;------------------------------------------------------------------------------
-COMMAND     mov.b   R14, &P1OUT             ; Load COMMAND in Port 1
+COMMANDLCD  mov.b   R14, &P1OUT             ; Load COMMAND in Port 1
             bic.b   #02h, &P2OUT            ; Turn off REGISTER SELECT
             bis.b   #01h, &P2OUT            ; Turn on ENABLE
 ;------------------------------------------------------------------------------
@@ -69,7 +72,7 @@ COMMAND     mov.b   R14, &P1OUT             ; Load COMMAND in Port 1
 ;                   P2.1 = RESGISTER SELECT
 ;                   R14  = SYMBOL (LETTER/NUMBER)
 ;------------------------------------------------------------------------------
-WRITE       mov.b   R14, &P1OUT             ; Load SYMBOL in Port 1
+WRITELCD    mov.b   R14, &P1OUT             ; Load SYMBOL in Port 1
             bis.b   #02h, &P2OUT            ; Turn on REGISTER SELECT
             bis.b   #01h, &P2OUT            ; Turn on ENABLE
 ;------------------------------------------------------------------------------

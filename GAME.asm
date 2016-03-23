@@ -16,9 +16,9 @@ StopWDT     mov     #WDTPW+WDTHOLD, &WDTCTL ; Stop WDT
                                             ; REGISTER SELECT of the LCD 16X2
             bic.b   #0Ch, &P2DIR            ; Set P2.2 and P2.3 as input
                                             ; For use with the two buttons
-            bis.b   #0Ch, &P1REN            ; Select internal resistor of P2.2
+            bis.b   #0Ch, &P2REN            ; Select internal resistor of P2.2
                                             ; and P2.3
-            bis.b   #0Ch, &P1OUT            ; Make it pull-up both internal
+            bis.b   #0Ch, &P2OUT            ; Make it pull-up both internal
                                             ; resistors
 
 ;------------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-#include    <msp430.h>
+#include    "msp430.h"
 ;------------------------------------------------------------------------------
             ORG     0C000h                  ; Program Start
 ;------------------------------------------------------------------------------
@@ -135,5 +135,5 @@ FAILNEXT    DB      0, 0, 1, 2, 3, 3, 4
 ;                       Interrupt Vectors
 ;------------------------------------------------------------------------------
             ORG     0FFFEh                  ; MSP RESET Vector
-            DW      RESET                   ; address of label RESET
+            DW      RESET                   ; Address of label RESET
             END

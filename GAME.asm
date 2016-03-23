@@ -102,7 +102,7 @@ WRITELCD    mov.b   R14, &P1OUT             ; Load SYMBOL in Port 1
             ret
 
 ;------------------------------------------------------------------------------
-;              SUBROUTINE DELAY15m (15.001ms)(OVERALL cycles = 14,993 + 8 = 15,001)
+;           SUBROUTINE DELAY15m |15.001ms|OVERALL cycles = 14,993 + 8 = 15,001
 ;------------------------------------------------------------------------------
 DELAY15M    mov     #4997, R15
 DELAY15MA   dec     R15
@@ -110,7 +110,7 @@ DELAY15MA   dec     R15
             ret
 
 ;------------------------------------------------------------------------------
-;              SUBROUTINE DELAY5m (5.002ms)(OVERALL cycles = 4,994 + 8 = 5,002)
+;           SUBROUTINE DELAY5m |5.002ms|OVERALL cycles = 4,994 + 8 = 5,002
 ;------------------------------------------------------------------------------
 DELAY5M     mov     #1664, R15
 DELAY5MA    dec     R15
@@ -118,7 +118,7 @@ DELAY5MA    dec     R15
             ret
 
 ;------------------------------------------------------------------------------
-;              SUBROUTINE DELAY160U (160us)(OVERALL cycles = 152 + 8 = 160)
+;           SUBROUTINE DELAY160U |160us|OVERALL cycles = 152 + 8 = 160
 ;------------------------------------------------------------------------------
 DELAY160U   mov     #50, R15
 DELAY160UA  dec     R15

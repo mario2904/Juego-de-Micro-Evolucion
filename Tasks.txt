@@ -1,7 +1,13 @@
 To-do list
 
 General Tasks:
-- Housekeeping/Boilerplate
-- Configure I/O Ports
-- Configure/Initialize LCD 16X2
-- Create Lookup-Table
++ Housekeeping/Boilerplate
++ Configure I/O Ports
++ Configure/Initialize LCD 16X2
+    + Implement command subroutine
+    + Implement write sub routine
+    + Implement delay of >= 300ns
+    + Implement delay of >= 15ms
+    + Implement delay of >= 5ms
+    + Implement delay of >= 160us
++ Create Lookup-Table

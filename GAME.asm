@@ -63,16 +63,16 @@ COMMANDLCD  mov.b   R14, &P1OUT             ; Load COMMAND in Port 1
             bis.b   #01h, &P2OUT            ; Turn on ENABLE
 ;------------------------------------------------------------------------------
 ;                   Delay >= 300ns          Really small!
-            dec     R15
+            nop                             ; Small Delay
 ;------------------------------------------------------------------------------
             bic.b   #01h, &P2OUT            ; Turn off ENABLE
 ;------------------------------------------------------------------------------
 ;                   Dummy Delay
 ;------------------------------------------------------------------------------
-            dec     R15                     ; Small Delay
-            dec     R15                     ; Small Delay
-            dec     R15                     ; Small Delay
-            dec     R15                     ; Small Delay
+            nop                             ; Small Delay
+            nop                             ; Small Delay
+            nop                             ; Small Delay
+            nop                             ; Small Delay
 ;------------------------------------------------------------------------------
             ret
 
@@ -88,16 +88,16 @@ WRITELCD    mov.b   R14, &P1OUT             ; Load SYMBOL in Port 1
             bis.b   #01h, &P2OUT            ; Turn on ENABLE
 ;------------------------------------------------------------------------------
 ;                   Delay >= 300ns          Really small!
-            dec     R15
+            nop                             ; Small Delay
 ;------------------------------------------------------------------------------
             bic.b   #01h, &P2OUT            ; Turn off ENABLE
 ;------------------------------------------------------------------------------
 ;                   Dummy Delay
 ;------------------------------------------------------------------------------
-            dec     R15                     ; Small Delay
-            dec     R15                     ; Small Delay
-            dec     R15                     ; Small Delay
-            dec     R15                     ; Small Delay
+            nop                             ; Small Delay
+            nop                             ; Small Delay
+            nop                             ; Small Delay
+            nop                             ; Small Delay
 ;------------------------------------------------------------------------------
             ret
 

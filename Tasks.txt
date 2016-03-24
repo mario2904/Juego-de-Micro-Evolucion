@@ -22,6 +22,12 @@ LCD Tasks:
 
 Game Logic Tasks / States:
 - Choose Difficulty State
+    + Add more Static messages to call with previously implemented subroutine
+        + "Escoja Modo de Operacion"
+        + "     Basico     ", "Si=B1      No=B2"
+        + "   Intermedio   ", "Si=B1      No=B2"
+        + "    Avanzado    ", "Si=B1      No=B2"
+    - Implement longer delay for debouncing
 - Start counter and Select Number State
 
 

@@ -54,6 +54,10 @@ StopWDT     mov     #WDTPW+WDTHOLD, &WDTCTL ; Stop WDT
 ;------------------------------------------------------------------------------
             mov     #MSGSTART, R13          ; Load Cstring of first message
             call    #STATICMSG              ; Call subroutine to show message
+BTNPRESS    bit.b   #04h, &P2IN             ; Poll Button B1 until pressed
+            jnz     BTNPRESS                ; This line will change depending
+                                            ; on the button used
+                                            ; Active high or Active low
 
 HERE        jmp     HERE
 
@@ -173,3 +177,4 @@ FAILNEXT    DB      0, 0, 1, 2, 3, 3, 4
             ORG     0FFFEh                  ; MSP RESET Vector
             DW      RESET                   ; Address of label RESET
             END
+

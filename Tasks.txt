@@ -20,6 +20,10 @@ LCD Tasks:
     + "Felicidades! :) Usted ha Ganado"
     + "Lo sentimos :( Usted ha Perdido"
 
+Game Logic Tasks / States:
+- Choose Difficulty State
+- Start counter and Select Number State
+
 
 
 Registers:

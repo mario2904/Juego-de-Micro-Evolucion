@@ -11,3 +11,20 @@ General Tasks:
     + Implement delay of >= 5ms
     + Implement delay of >= 160us
 + Create Lookup-Table
+
+LCD Tasks:
+- Implement subroutine to show static messages on LCD
+    - "Presiona El Boton Principal"
+    - "Avanza Al Proximo Nivel"
+    - "Baja De Nivel"
+    - "Felicidades! :) Usted ha ganado"
+    - "Lo sentimos :'( Usted ha perdido"
+
+
+
+Registers:
+
+NAME    | WHERE                                 | Description
+____________________________________________________________
+R15     | Delay subroutines                     | Used as a counter
+R14     | Subroutines COMMANDLCD and WRITELCD   | Used to pass value to subroutine

@@ -102,27 +102,27 @@ WRITELCD    mov.b   R14, &P1OUT             ; Load SYMBOL in Port 1
             ret
 
 ;------------------------------------------------------------------------------
-;           SUBROUTINE DELAY15m |15.001ms|OVERALL cycles = 14,993 + 8 = 15,001
+;                   SUBROUTINE DELAY15m |~15.001ms|OVERALL cycles = 16501
 ;------------------------------------------------------------------------------
-DELAY15M    mov     #4997, R15
-DELAY15MA   dec     R15
-            jnz     DELAY15MA
+DELAY15M    mov     #5497, R15              ; Load number of iterations
+DELAY15MA   dec     R15                     ; Decrement number of iterations
+            jnz     DELAY15MA               ; If Z != 0 continue looping
             ret
 
 ;------------------------------------------------------------------------------
-;           SUBROUTINE DELAY5m |5.002ms|OVERALL cycles = 4,994 + 8 = 5,002
+;                   SUBROUTINE DELAY5m |5.00ms|OVERALL cycles = 5500
 ;------------------------------------------------------------------------------
-DELAY5M     mov     #1664, R15
-DELAY5MA    dec     R15
-            jnz     DELAY5MA
+DELAY5M     mov     #1830, R15              ; Load number of iterations
+DELAY5MA    dec     R15                     ; Decrement number of iterations
+            jnz     DELAY5MA                ; If Z != 0 continue looping
             ret
 
 ;------------------------------------------------------------------------------
-;           SUBROUTINE DELAY160U |160us|OVERALL cycles = 152 + 8 = 160
+;                   SUBROUTINE DELAY160U |~161.81us|OVERALL cycles = 178
 ;------------------------------------------------------------------------------
-DELAY160U   mov     #50, R15
-DELAY160UA  dec     R15
-            jnz     DELAY160UA
+DELAY160U   mov     #56, R15                ; Load number of iterations
+DELAY160UA  dec     R15                     ; Decrement number of iterations
+            jnz     DELAY160UA              ; If Z != 0 continue looping
             ret
 
 ;------------------------------------------------------------------------------

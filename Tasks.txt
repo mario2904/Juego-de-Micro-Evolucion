@@ -27,7 +27,8 @@ Game Logic Tasks / States:
         + "     Basico     ", "Si=B1      No=B2"
         + "   Intermedio   ", "Si=B1      No=B2"
         + "    Avanzado    ", "Si=B1      No=B2"
-    - Implement longer delay for debouncing
+    + Implement longer delay for debouncing
+        + 500ms delay
 - Start counter and Select Number State
 
 
@@ -35,6 +36,9 @@ Game Logic Tasks / States:
 Registers:
 
 NAME    | WHERE                                 | Description
-____________________________________________________________
+__________________________________________________________________________________
 R15     | Delay subroutines                     | Used as a counter
 R14     | Subroutines COMMANDLCD and WRITELCD   | Used to pass value to subroutine
+R13     | Subroutine STATICMSG                  | Used as Iterator
+R4      | Throughout the game                   | Holds the value of difficulty
+

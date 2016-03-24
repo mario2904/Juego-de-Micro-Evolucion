@@ -47,9 +47,36 @@ StopWDT     mov     #WDTPW+WDTHOLD, &WDTCTL ; Stop WDT
             call    #COMMANDLCD             ; Send command Entry mode set
             mov.b   #01h, R14               ; Load command Clear Display
             call    #COMMANDLCD             ; Send command to Clear Display
+            call    #DELAY15M               ; Wait until LCD is stable
 
-            call    #DELAY15M
+;------------------------------------------------------------------------------
+;                   Show First Message
+;------------------------------------------------------------------------------
+            mov     #MSGSTART, R13          ; Load Cstring of first message
+            call    #STATICMSG              ; Call subroutine to show message
+
 HERE        jmp     HERE
+
+;------------------------------------------------------------------------------
+;                   LCD - Show static Message
+;------------------------------------------------------------------------------
+;                   R13 = Pointer to message Cstring
+;------------------------------------------------------------------------------
+STATICMSG   mov.b   #01h, R14               ; Load command Clear Display
+            call    #COMMANDLCD             ; Send command to Clear Display
+            call    #DELAY15M               ; Wait until LCD is stable
+STATICMSGA1 mov.b   @R13+, R14              ; Load character to R14
+            call    #WRITELCD               ; Write charater to LCD
+            cmp.b   #00h, 0(R13)            ; Is this the null character?
+            jnz     STATICMSGA1             ; If it's not, continue loop
+            mov.b   #0A8h, R14              ; Load command to move cursor
+            call    #COMMANDLCD             ; Send command to move cursor
+            inc     R13                     ; Fetch next Cstring
+STATICMSGA2 mov.b   @R13+, R14              ; Load character to R14
+            call    #WRITELCD               ; Write charater to LCD
+            cmp.b   #00h, 0(R13)            ; Is this the null character?
+            jnz     STATICMSGA2             ; If it's not, continue loop
+            ret
 
 ;------------------------------------------------------------------------------
 ;                   LCD - Command Subroutine
@@ -67,7 +94,7 @@ COMMANDLCD  mov.b   R14, &P1OUT             ; Load COMMAND in Port 1
 ;------------------------------------------------------------------------------
             bic.b   #01h, &P2OUT            ; Turn off ENABLE
 ;------------------------------------------------------------------------------
-;                   Dummy Delay
+;                   Dummy Delay - Wait for LCD to stabilize
 ;------------------------------------------------------------------------------
             nop                             ; Small Delay
             nop                             ; Small Delay
@@ -92,7 +119,7 @@ WRITELCD    mov.b   R14, &P1OUT             ; Load SYMBOL in Port 1
 ;------------------------------------------------------------------------------
             bic.b   #01h, &P2OUT            ; Turn off ENABLE
 ;------------------------------------------------------------------------------
-;                   Dummy Delay
+;                   Dummy Delay - Wait for LCD to stabilize
 ;------------------------------------------------------------------------------
             nop                             ; Small Delay
             nop                             ; Small Delay
@@ -124,6 +151,15 @@ DELAY160U   mov     #56, R15                ; Load number of iterations
 DELAY160UA  dec     R15                     ; Decrement number of iterations
             jnz     DELAY160UA              ; If Z != 0 continue looping
             ret
+
+;------------------------------------------------------------------------------
+;                   Static Messages - Cstring
+;------------------------------------------------------------------------------
+MSGSTART    DB      "Presiona el",  "Boton Principal"
+MSGUP       DB      "Avanza al", "Proximo Nivel"
+MSGDOWN     DB      "Baja de Nivel", " "
+MSGWON      DB      "Felicidades! :)", "Usted ha Ganado"
+MSGLOST     DB      "Lo sentimos :(", "Usted ha Perdido"
 
 ;------------------------------------------------------------------------------
 ;                   Lookup Tables - Index=Level

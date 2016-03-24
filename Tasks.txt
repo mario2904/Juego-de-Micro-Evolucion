@@ -13,12 +13,12 @@ General Tasks:
 + Create Lookup-Table
 
 LCD Tasks:
-- Implement subroutine to show static messages on LCD
-    - "Presiona El Boton Principal"
-    - "Avanza Al Proximo Nivel"
-    - "Baja De Nivel"
-    - "Felicidades! :) Usted ha ganado"
-    - "Lo sentimos :'( Usted ha perdido"
++ Implement subroutine to show static messages on LCD
+    + "Presiona el Boton Principal"
+    + "Avanza al Proximo Nivel"
+    + "Baja De Nivel"
+    + "Felicidades! :) Usted ha Ganado"
+    + "Lo sentimos :( Usted ha Perdido"
 
 
 

@@ -68,7 +68,11 @@ BTNPRESS1_1 bit.b   #04h, &P2IN             ; Poll Button B1 until pressed
 ;------------------------------------------------------------------------------
             mov     #MSGDIFF, R13           ; Load Cstring of difficulty message
             call    #STATICMSG              ; Call subroutine to show message
-LOOPAGAIN   call    #DELAY15M               ; For debouncing
+            call    #DELAY500M              ; Wait ~2 seconds to show message
+            call    #DELAY500M              ;
+            call    #DELAY500M              ;
+            call    #DELAY500M              ;
+LOOPAGAIN   call    #DELAY500M              ; For debouncing
             mov.b   #01h, R4                ; Start assuming difficulty = 1
             mov     #MSGBASIC, R13          ; Load Cstring of basic message
             call    #STATICMSG              ; Call subroutine to show message
@@ -80,7 +84,7 @@ LOOPBASIC   bit.b   #04h, &P2IN             ; Poll Button 1
             jnz     LOOPBASIC               ; This line will change depending
                                             ; on the button used
                                             ; Active high or Active low
-            call    #DELAY15M               ; For debouncing
+            call    #DELAY500M              ; For debouncing
             inc     R4                      ; Continue assuming difficulty = 2
             mov     #MSGINTER, R13          ; Load Cstring of intermediate message
             call    #STATICMSG              ; Call subroutine to show message
@@ -92,7 +96,7 @@ LOOPINTER   bit.b   #04h, &P2IN             ; Poll Button 1
             jnz     LOOPINTER               ; This line will change depending
                                             ; on the button used
                                             ; Active high or Active low
-            call    #DELAY15M               ; For debouncing
+            call    #DELAY500M              ; For debouncing
             inc     R4                      ; Continue assuming difficulty = 3
             mov     #MSGADVAN, R13          ; Load Cstring of advanced message
             call    #STATICMSG              ; Call subroutine to show message
@@ -106,14 +110,7 @@ LOOPADVAN   bit.b   #04h, &P2IN             ; Poll Button 1
                                             ; Active high or Active low
             jmp     LOOPAGAIN               ; Loop again through all options
 
-
-
-
 DIFFCHOSEN                                  ; Finished Decision Making
-
-
-
-
 
 HERE        jmp     HERE
 
@@ -190,7 +187,23 @@ WRITELCD    mov.b   R14, &P1OUT             ; Load SYMBOL in Port 1
             ret
 
 ;------------------------------------------------------------------------------
-;                   SUBROUTINE DELAY15m |~15.001ms|OVERALL cycles = 16501
+;                   SUBROUTINE DELAY500ms |~500.01ms|OVERALL cycles = 550,010
+;------------------------------------------------------------------------------
+DELAY500M   mov     #50000, R15             ; Load number of iterations
+DELAY500MA  dec     R15                     ; Decrement number of iterations
+            nop                             ; Small Delay
+            nop                             ; Small Delay
+            nop                             ; Small Delay
+            nop                             ; Small Delay
+            nop                             ; Small Delay
+            nop                             ; Small Delay
+            nop                             ; Small Delay
+            nop                             ; Small Delay
+            jnz     DELAY500MA              ; If Z != 0 continue looping
+            ret
+
+;------------------------------------------------------------------------------
+;                   SUBROUTINE DELAY15m |~15.001ms|OVERALL cycles = 16,501
 ;------------------------------------------------------------------------------
 DELAY15M    mov     #5497, R15              ; Load number of iterations
 DELAY15MA   dec     R15                     ; Decrement number of iterations
@@ -198,7 +211,7 @@ DELAY15MA   dec     R15                     ; Decrement number of iterations
             ret
 
 ;------------------------------------------------------------------------------
-;                   SUBROUTINE DELAY5m |5.00ms|OVERALL cycles = 5500
+;                   SUBROUTINE DELAY5m |5.00ms|OVERALL cycles = 5,500
 ;------------------------------------------------------------------------------
 DELAY5M     mov     #1830, R15              ; Load number of iterations
 DELAY5MA    dec     R15                     ; Decrement number of iterations

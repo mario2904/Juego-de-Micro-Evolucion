@@ -60,19 +60,21 @@ POLL1       bit.b   #04h, &P2IN             ; Poll Button B1 until pressed
                                             ; Active high or Active low
 
 ;------------------------------------------------------------------------------
-;                   Choose Difficulty Level
+;                   Choose Difficulty Level State
 ;------------------------------------------------------------------------------
 ;                   R4 = Difficulty Level
 ;                   4 - Basic
 ;                   2 - Intermediate
-;                   0 - Advanced
+;                   1 - Advanced
 ;------------------------------------------------------------------------------
             mov     #MSGDIFF, R13           ; Load Cstring of difficulty message
             call    #WRITEMSG               ; Write message
+
             call    #DELAY500M              ; Wait ~2 seconds to show message
             call    #DELAY500M              ;
             call    #DELAY500M              ;
             call    #DELAY500M              ;
+
             mov.b   #01h, R14               ; Load command Clear Display
             call    #COMMANDLCD             ; Send command to Clear Display
             call    #DELAY15M               ; Wait until LCD is stable
@@ -81,7 +83,7 @@ POLL1       bit.b   #04h, &P2IN             ; Poll Button B1 until pressed
             mov     #MSGOPTION, R13         ; Load Cstring of option message
             call    #WRITESTR               ; Write string in 2nd line
 
-LOOPAGAIN   mov.b   #04h, R4                ; Start assuming difficulty = 2
+LOOPAGAIN   mov.b   #04h, R4                ; Start assuming difficulty = 4
 ASKNEXTDIFF mov     WHICHDIFF(R4), R13      ; Load Cstring of currently
                                             ; assumed difficulty message
             mov.b   #080h, R14              ; Load command to move cursor 1st LN
@@ -101,12 +103,71 @@ POLL2       bit.b   #04h, &P2IN             ; Poll Button 1
             jnc     ASKNEXTDIFF             ; Ask for next difficulty
             jmp     LOOPAGAIN
 
-DIFFCHOSEN                                  ; Finished Decision Making
+DIFFCHOSEN  call    #DELAY500M              ; For debouncing
+                                            ; Finished Decision Making
+;------------------------------------------------------------------------------
+;                   Set initial Level to 1
+;------------------------------------------------------------------------------
+;                   R5  = Level
+;                   1   - TRANSISTOR
+;                   2   - NAND
+;                   4   - FLIP/FLOP
+;                   8   - REGISTER
+;                   16  - COUNTER
+;                   32  - ALU
+;                   64  - CPU
+;                   128 - MCU
+;------------------------------------------------------------------------------
+            mov.b   #01h, R5                ; Set initial level to 1
+
+;------------------------------------------------------------------------------
+;****************** Start MainLoop ********************************************
+;------------------------------------------------------------------------------
+MAINLOOP    mov.b   #01h, R14               ; Load command Clear Display
+            call    #COMMANDLCD             ; Send command to Clear Display
+            call    #DELAY15M               ; Wait until LCD is stable
+
+;------------------------------------------------------------------------------
+;                   Show Current Level
+;------------------------------------------------------------------------------
+            mov     #MSGLVL, R13            ; Load Cstring of level message
+            call    #WRITESTR               ; Write string in 1st line
+            mov.b   #0A8h, R14              ; Load command to move cursor 2nd LN
+            call    #COMMANDLCD             ; Send command to move cursor 2nd LN
+            mov     WHICHLVL(R5), R13       ; Load Cstring of current
+                                            ; level message
+            call    #WRITESTR               ; Write string in 2nd line
+
+            call    #DELAY500M              ; Wait ~2 seconds to show message
+            call    #DELAY500M              ;
+            call    #DELAY500M              ;
+            call    #DELAY500M              ;
+
+;------------------------------------------------------------------------------
+;                   Start Counter and Select Number State
+;------------------------------------------------------------------------------
+            mov.b   #01h, R14               ; Load command Clear Display
+            call    #COMMANDLCD             ; Send command to Clear Display
+            call    #DELAY15M               ; Wait until LCD is stable
+
+            mov     #MSGINSTR, R13          ; Load Cstring of instruct message
+            call    #WRITEMSG               ; Write message
+            call    #DELAY500M              ; Wait ~2 seconds to show message
+            call    #DELAY500M              ;
+            call    #DELAY500M              ;
+            call    #DELAY500M              ;
+
+            mov.b   #01h, R14               ; Load command Clear Display
+            call    #COMMANDLCD             ; Send command to Clear Display
+            call    #DELAY15M               ; Wait until LCD is stable
+
+            mov     #MSGNUMBS, R13          ; Load Cstring of numbers message
+            call    #WRITESTR               ; Write string in 1st line
 
 HERE        jmp     HERE
 
 ;------------------------------------------------------------------------------
-;                   LCD - Write 1 line string Message in the second line
+;                   LCD - Write 1 line string Message
 ;------------------------------------------------------------------------------
 ;                   R13 = Pointer to message Cstring
 ;                   R14 = COMMAND/CHARACTER
@@ -227,6 +288,8 @@ DELAY160UA  dec     R15                     ; Decrement number of iterations
 ;                   Switch Statements
 ;------------------------------------------------------------------------------
 WHICHDIFF   DW      MSGADVAN, MSGINTER, MSGBASIC
+WHICHLVL    DW      MSGLV0, MSGLV1, MSGLV2, MSGLV3, MSGLV4, MSGLV5, MSGLV6
+            DW      MSGLV7
 
 ;------------------------------------------------------------------------------
 ;                   Static Messages - Cstring
@@ -237,6 +300,17 @@ MSGOPTION   DB      "Si=B1      No=B2"
 MSGBASIC    DB      "     Basico     "
 MSGINTER    DB      "   Intermedio   "
 MSGADVAN    DB      "    Avanzado    "
+MSGINSTR    DB      "Presiona B1", "Para Detener"
+MSGNUMBS    DB      "0123456789ABCDEF"
+MSGLVL      DB      "Esta en Nivel"
+MSGLV0      DB      "0 - TRANSISTOR"
+MSGLV1      DB      "1 - NAND"
+MSGLV2      DB      "2 - FLIP/FLOP"
+MSGLV3      DB      "3 - REGISTER"
+MSGLV4      DB      "4 - COUNTER"
+MSGLV5      DB      "5 - ALU"
+MSGLV6      DB      "6 - CPU"
+MSGLV7      DB      "7 - MCU"
 MSGUP       DB      "Avanza al", "Proximo Nivel"
 MSGDOWN     DB      "Baja de Nivel", " "
 MSGWON      DB      "Felicidades! :)", "Usted ha Ganado"

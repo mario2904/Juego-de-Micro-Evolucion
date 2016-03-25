@@ -32,8 +32,17 @@ Game Logic Tasks / States:
         + 500ms delay
 - Start Counter and Select Number State
     - Add more Static messages to call with previously implemented subroutines
-        -"Presiona B1 Para Detener"
-        - "0123456789ABCDEF"
+        + "Presiona B1 Para Detener"
+        + "0123456789ABCDEF"
+        + "Esta en Nivel"
+        + "0 - TRANSISTOR"
+        + "1 - NAND"
+        + "2 - FLIP/FLOP"
+        + "3 - REGISTER"
+        + "4 - COUNTER"
+        + "5 - ALU"
+        + "6 - CPU"
+        + "7 - MCU"
     - Implement delays
         - 100ms
         - 200ms
@@ -47,5 +56,5 @@ ________________________________________________________________________________
 R15     | Delay subroutines                     | Used as a counter
 R14     | Subroutines COMMANDLCD and WRITELCD   | Used to pass value to subroutine
 R13     | Subroutine WRITESTR and WRITEMSG      | Used to pass value and as Iterator
-R4      | Throughout the game                   | Holds the value of difficulty
-
+R4      | Throughout the game (Stays the same)  | Holds the value of difficulty
+R5      | Throughout the game (Changes)         | Holds the value of selected number

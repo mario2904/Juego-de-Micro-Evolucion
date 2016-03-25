@@ -53,7 +53,7 @@ StopWDT     mov     #WDTPW+WDTHOLD, &WDTCTL ; Stop WDT
 ;                   Show First Message
 ;------------------------------------------------------------------------------
             mov     #MSGSTART, R13          ; Load Cstring of first message
-            call    #STATICMSG              ; Call subroutine to show message
+            call    #WRITEMSG               ; Call subroutine to show message
 BTNPRESS1_1 bit.b   #04h, &P2IN             ; Poll Button B1 until pressed
             jnz     BTNPRESS1_1             ; This line will change depending
                                             ; on the button used
@@ -67,7 +67,7 @@ BTNPRESS1_1 bit.b   #04h, &P2IN             ; Poll Button B1 until pressed
 ;                   3 - Advanced
 ;------------------------------------------------------------------------------
             mov     #MSGDIFF, R13           ; Load Cstring of difficulty message
-            call    #STATICMSG              ; Call subroutine to show message
+            call    #WRITEMSG               ; Call subroutine to show message
             call    #DELAY500M              ; Wait ~2 seconds to show message
             call    #DELAY500M              ;
             call    #DELAY500M              ;
@@ -75,7 +75,7 @@ BTNPRESS1_1 bit.b   #04h, &P2IN             ; Poll Button B1 until pressed
 LOOPAGAIN   call    #DELAY500M              ; For debouncing
             mov.b   #01h, R4                ; Start assuming difficulty = 1
             mov     #MSGBASIC, R13          ; Load Cstring of basic message
-            call    #STATICMSG              ; Call subroutine to show message
+            call    #WRITEMSG               ; Call subroutine to show message
 LOOPBASIC   bit.b   #04h, &P2IN             ; Poll Button 1
             jz      DIFFCHOSEN              ; This line will change depending
                                             ; on the button used
@@ -87,7 +87,7 @@ LOOPBASIC   bit.b   #04h, &P2IN             ; Poll Button 1
             call    #DELAY500M              ; For debouncing
             inc     R4                      ; Continue assuming difficulty = 2
             mov     #MSGINTER, R13          ; Load Cstring of intermediate message
-            call    #STATICMSG              ; Call subroutine to show message
+            call    #WRITEMSG               ; Call subroutine to show message
 LOOPINTER   bit.b   #04h, &P2IN             ; Poll Button 1
             jz      DIFFCHOSEN              ; This line will change depending
                                             ; on the button used
@@ -99,7 +99,7 @@ LOOPINTER   bit.b   #04h, &P2IN             ; Poll Button 1
             call    #DELAY500M              ; For debouncing
             inc     R4                      ; Continue assuming difficulty = 3
             mov     #MSGADVAN, R13          ; Load Cstring of advanced message
-            call    #STATICMSG              ; Call subroutine to show message
+            call    #WRITEMSG               ; Call subroutine to show message
 LOOPADVAN   bit.b   #04h, &P2IN             ; Poll Button 1
             jz      DIFFCHOSEN              ; This line will change depending
                                             ; on the button used
@@ -115,25 +115,31 @@ DIFFCHOSEN                                  ; Finished Decision Making
 HERE        jmp     HERE
 
 ;------------------------------------------------------------------------------
-;                   LCD - Show static Message
+;                   LCD - Write 1 line string Message
 ;------------------------------------------------------------------------------
 ;                   R13 = Pointer to message Cstring
 ;                   R14 = COMMAND/CHARACTER
 ;------------------------------------------------------------------------------
-STATICMSG   mov.b   #01h, R14               ; Load command Clear Display
-            call    #COMMANDLCD             ; Send command to Clear Display
-            call    #DELAY15M               ; Wait until LCD is stable
-STATICMSGA1 mov.b   @R13+, R14              ; Load character to R14
+WRITESTR    mov.b   @R13+, R14              ; Load character to R14
             call    #WRITELCD               ; Write charater to LCD
             cmp.b   #00h, 0(R13)            ; Is this the null character?
-            jnz     STATICMSGA1             ; If it's not, continue loop
+            jnz     WRITESTR                ; If it's not, continue loop
+            ret
+
+;------------------------------------------------------------------------------
+;                   LCD - Write 2 line Message
+;------------------------------------------------------------------------------
+;                   R13 = Pointer to message Cstring
+;                   R14 = COMMAND/CHARACTER
+;------------------------------------------------------------------------------
+WRITEMSG    mov.b   #01h, R14               ; Load command Clear Display
+            call    #COMMANDLCD             ; Send command to Clear Display
+            call    #DELAY15M               ; Wait until LCD is stable
+            call    #WRITESTR               ; Write first line
             mov.b   #0A8h, R14              ; Load command to move cursor
             call    #COMMANDLCD             ; Send command to move cursor
             inc     R13                     ; Fetch next Cstring
-STATICMSGA2 mov.b   @R13+, R14              ; Load character to R14
-            call    #WRITELCD               ; Write charater to LCD
-            cmp.b   #00h, 0(R13)            ; Is this the null character?
-            jnz     STATICMSGA2             ; If it's not, continue loop
+            call    #WRITESTR               ; Write second line
             ret
 
 ;------------------------------------------------------------------------------

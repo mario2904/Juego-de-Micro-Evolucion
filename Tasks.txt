@@ -43,11 +43,12 @@ Game Logic Tasks / States:
         + "5 - ALU"
         + "6 - CPU"
         + "7 - MCU"
+        + "^"   PIVOT
     - Implement delays
         - 100ms
         - 200ms
         - 400ms
-
++ Changed Delay implementation. Now it uses internal Timer.
 
 Registers:
 

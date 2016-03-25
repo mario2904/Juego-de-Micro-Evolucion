@@ -21,7 +21,7 @@ LCD Tasks:
     + "Lo sentimos :( Usted ha Perdido"
 
 Game Logic Tasks / States:
-- Choose Difficulty State
++ Choose Difficulty State
     + Add more Static messages to call with previously implemented subroutine
         + "Escoja Modo de Operacion"
         + "     Basico     ", "Si=B1      No=B2"

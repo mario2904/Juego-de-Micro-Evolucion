@@ -53,69 +53,60 @@ StopWDT     mov     #WDTPW+WDTHOLD, &WDTCTL ; Stop WDT
 ;                   Show First Message
 ;------------------------------------------------------------------------------
             mov     #MSGSTART, R13          ; Load Cstring of first message
-            call    #WRITEMSG               ; Call subroutine to show message
-BTNPRESS1_1 bit.b   #04h, &P2IN             ; Poll Button B1 until pressed
-            jnz     BTNPRESS1_1             ; This line will change depending
+            call    #WRITEMSG               ; Write message
+POLL1       bit.b   #04h, &P2IN             ; Poll Button B1 until pressed
+            jnz     POLL1                   ; This line will change depending
                                             ; on the button used
                                             ; Active high or Active low
 
 ;------------------------------------------------------------------------------
 ;                   Choose Difficulty Level
+;------------------------------------------------------------------------------
 ;                   R4 = Difficulty Level
-;                   1 - Basic
+;                   4 - Basic
 ;                   2 - Intermediate
-;                   3 - Advanced
+;                   0 - Advanced
 ;------------------------------------------------------------------------------
             mov     #MSGDIFF, R13           ; Load Cstring of difficulty message
-            call    #WRITEMSG               ; Call subroutine to show message
+            call    #WRITEMSG               ; Write message
             call    #DELAY500M              ; Wait ~2 seconds to show message
             call    #DELAY500M              ;
             call    #DELAY500M              ;
             call    #DELAY500M              ;
-LOOPAGAIN   call    #DELAY500M              ; For debouncing
-            mov.b   #01h, R4                ; Start assuming difficulty = 1
-            mov     #MSGBASIC, R13          ; Load Cstring of basic message
-            call    #WRITEMSG               ; Call subroutine to show message
-LOOPBASIC   bit.b   #04h, &P2IN             ; Poll Button 1
+            mov.b   #01h, R14               ; Load command Clear Display
+            call    #COMMANDLCD             ; Send command to Clear Display
+            call    #DELAY15M               ; Wait until LCD is stable
+            mov.b   #0A8h, R14              ; Load command to move cursor 2nd LN
+            call    #COMMANDLCD             ; Send command to move cursor 2nd LN
+            mov     #MSGOPTION, R13         ; Load Cstring of option message
+            call    #WRITESTR               ; Write string in 2nd line
+
+LOOPAGAIN   mov.b   #04h, R4                ; Start assuming difficulty = 2
+ASKNEXTDIFF mov     WHICHDIFF(R4), R13      ; Load Cstring of currently
+                                            ; assumed difficulty message
+            mov.b   #080h, R14              ; Load command to move cursor 1st LN
+            call    #COMMANDLCD             ; Send command to move cursor 1st LN
+            call    #WRITESTR               ; Write string in 1st line
+POLL2       bit.b   #04h, &P2IN             ; Poll Button 1
             jz      DIFFCHOSEN              ; This line will change depending
                                             ; on the button used
                                             ; Active high or Active low
             bit.b   #08h, &P2IN             ; Poll Button 2
-            jnz     LOOPBASIC               ; This line will change depending
+            jnz     POLL2                   ; This line will change depending
                                             ; on the button used
                                             ; Active high or Active low
             call    #DELAY500M              ; For debouncing
-            inc     R4                      ; Continue assuming difficulty = 2
-            mov     #MSGINTER, R13          ; Load Cstring of intermediate message
-            call    #WRITEMSG               ; Call subroutine to show message
-LOOPINTER   bit.b   #04h, &P2IN             ; Poll Button 1
-            jz      DIFFCHOSEN              ; This line will change depending
-                                            ; on the button used
-                                            ; Active high or Active low
-            bit.b   #08h, &P2IN             ; Poll Button 2
-            jnz     LOOPINTER               ; This line will change depending
-                                            ; on the button used
-                                            ; Active high or Active low
-            call    #DELAY500M              ; For debouncing
-            inc     R4                      ; Continue assuming difficulty = 3
-            mov     #MSGADVAN, R13          ; Load Cstring of advanced message
-            call    #WRITEMSG               ; Call subroutine to show message
-LOOPADVAN   bit.b   #04h, &P2IN             ; Poll Button 1
-            jz      DIFFCHOSEN              ; This line will change depending
-                                            ; on the button used
-                                            ; Active high or Active low
-            bit.b   #08h, &P2IN             ; Poll Button 2
-            jnz     LOOPADVAN               ; This line will change depending
-                                            ; on the button used
-                                            ; Active high or Active low
-            jmp     LOOPAGAIN               ; Loop again through all options
+            clrc                            ; clear carry bit
+            rrc.b   R4                      ; Assume lower difficulty
+            jnc     ASKNEXTDIFF             ; Ask for next difficulty
+            jmp     LOOPAGAIN
 
 DIFFCHOSEN                                  ; Finished Decision Making
 
 HERE        jmp     HERE
 
 ;------------------------------------------------------------------------------
-;                   LCD - Write 1 line string Message
+;                   LCD - Write 1 line string Message in the second line
 ;------------------------------------------------------------------------------
 ;                   R13 = Pointer to message Cstring
 ;                   R14 = COMMAND/CHARACTER
@@ -233,13 +224,19 @@ DELAY160UA  dec     R15                     ; Decrement number of iterations
             ret
 
 ;------------------------------------------------------------------------------
+;                   Switch Statements
+;------------------------------------------------------------------------------
+WHICHDIFF   DW      MSGADVAN, MSGINTER, MSGBASIC
+
+;------------------------------------------------------------------------------
 ;                   Static Messages - Cstring
 ;------------------------------------------------------------------------------
 MSGSTART    DB      "Presiona el",  "Boton Principal"
 MSGDIFF     DB      "Escoja Modo de", "Operacion"
-MSGBASIC    DB      "     Basico     ", "Si=B1      No=B2"
-MSGINTER    DB      "   Intermedio   ", "Si=B1      No=B2"
-MSGADVAN    DB      "    Avanzado    ", "Si=B1      No=B2"
+MSGOPTION   DB      "Si=B1      No=B2"
+MSGBASIC    DB      "     Basico     "
+MSGINTER    DB      "   Intermedio   "
+MSGADVAN    DB      "    Avanzado    "
 MSGUP       DB      "Avanza al", "Proximo Nivel"
 MSGDOWN     DB      "Baja de Nivel", " "
 MSGWON      DB      "Felicidades! :)", "Usted ha Ganado"

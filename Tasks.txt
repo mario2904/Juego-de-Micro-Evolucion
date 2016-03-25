@@ -39,6 +39,6 @@ NAME    | WHERE                                 | Description
 __________________________________________________________________________________
 R15     | Delay subroutines                     | Used as a counter
 R14     | Subroutines COMMANDLCD and WRITELCD   | Used to pass value to subroutine
-R13     | Subroutine STATICMSG                  | Used as Iterator
+R13     | Subroutine WRITESTR and WRITEMSG      | Used to pass value and as Iterator
 R4      | Throughout the game                   | Holds the value of difficulty
 

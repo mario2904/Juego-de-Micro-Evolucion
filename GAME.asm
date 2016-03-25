@@ -53,33 +53,93 @@ StopWDT     mov     #WDTPW+WDTHOLD, &WDTCTL ; Stop WDT
 ;                   Show First Message
 ;------------------------------------------------------------------------------
             mov     #MSGSTART, R13          ; Load Cstring of first message
-            call    #STATICMSG              ; Call subroutine to show message
-BTNPRESS    bit.b   #04h, &P2IN             ; Poll Button B1 until pressed
-            jnz     BTNPRESS                ; This line will change depending
+            call    #WRITEMSG               ; Call subroutine to show message
+BTNPRESS1_1 bit.b   #04h, &P2IN             ; Poll Button B1 until pressed
+            jnz     BTNPRESS1_1             ; This line will change depending
                                             ; on the button used
                                             ; Active high or Active low
+
+;------------------------------------------------------------------------------
+;                   Choose Difficulty Level
+;                   R4 = Difficulty Level
+;                   1 - Basic
+;                   2 - Intermediate
+;                   3 - Advanced
+;------------------------------------------------------------------------------
+            mov     #MSGDIFF, R13           ; Load Cstring of difficulty message
+            call    #WRITEMSG               ; Call subroutine to show message
+            call    #DELAY500M              ; Wait ~2 seconds to show message
+            call    #DELAY500M              ;
+            call    #DELAY500M              ;
+            call    #DELAY500M              ;
+LOOPAGAIN   call    #DELAY500M              ; For debouncing
+            mov.b   #01h, R4                ; Start assuming difficulty = 1
+            mov     #MSGBASIC, R13          ; Load Cstring of basic message
+            call    #WRITEMSG               ; Call subroutine to show message
+LOOPBASIC   bit.b   #04h, &P2IN             ; Poll Button 1
+            jz      DIFFCHOSEN              ; This line will change depending
+                                            ; on the button used
+                                            ; Active high or Active low
+            bit.b   #08h, &P2IN             ; Poll Button 2
+            jnz     LOOPBASIC               ; This line will change depending
+                                            ; on the button used
+                                            ; Active high or Active low
+            call    #DELAY500M              ; For debouncing
+            inc     R4                      ; Continue assuming difficulty = 2
+            mov     #MSGINTER, R13          ; Load Cstring of intermediate message
+            call    #WRITEMSG               ; Call subroutine to show message
+LOOPINTER   bit.b   #04h, &P2IN             ; Poll Button 1
+            jz      DIFFCHOSEN              ; This line will change depending
+                                            ; on the button used
+                                            ; Active high or Active low
+            bit.b   #08h, &P2IN             ; Poll Button 2
+            jnz     LOOPINTER               ; This line will change depending
+                                            ; on the button used
+                                            ; Active high or Active low
+            call    #DELAY500M              ; For debouncing
+            inc     R4                      ; Continue assuming difficulty = 3
+            mov     #MSGADVAN, R13          ; Load Cstring of advanced message
+            call    #WRITEMSG               ; Call subroutine to show message
+LOOPADVAN   bit.b   #04h, &P2IN             ; Poll Button 1
+            jz      DIFFCHOSEN              ; This line will change depending
+                                            ; on the button used
+                                            ; Active high or Active low
+            bit.b   #08h, &P2IN             ; Poll Button 2
+            jnz     LOOPADVAN               ; This line will change depending
+                                            ; on the button used
+                                            ; Active high or Active low
+            jmp     LOOPAGAIN               ; Loop again through all options
+
+DIFFCHOSEN                                  ; Finished Decision Making
 
 HERE        jmp     HERE
 
 ;------------------------------------------------------------------------------
-;                   LCD - Show static Message
+;                   LCD - Write 1 line string Message
 ;------------------------------------------------------------------------------
 ;                   R13 = Pointer to message Cstring
+;                   R14 = COMMAND/CHARACTER
 ;------------------------------------------------------------------------------
-STATICMSG   mov.b   #01h, R14               ; Load command Clear Display
-            call    #COMMANDLCD             ; Send command to Clear Display
-            call    #DELAY15M               ; Wait until LCD is stable
-STATICMSGA1 mov.b   @R13+, R14              ; Load character to R14
+WRITESTR    mov.b   @R13+, R14              ; Load character to R14
             call    #WRITELCD               ; Write charater to LCD
             cmp.b   #00h, 0(R13)            ; Is this the null character?
-            jnz     STATICMSGA1             ; If it's not, continue loop
+            jnz     WRITESTR                ; If it's not, continue loop
+            ret
+
+;------------------------------------------------------------------------------
+;                   LCD - Write 2 line Message
+;------------------------------------------------------------------------------
+;                   R13 = Pointer to message Cstring
+;                   R14 = COMMAND/CHARACTER
+;------------------------------------------------------------------------------
+WRITEMSG    mov.b   #01h, R14               ; Load command Clear Display
+            call    #COMMANDLCD             ; Send command to Clear Display
+            call    #DELAY15M               ; Wait until LCD is stable
+            call    #WRITESTR               ; Write first line
             mov.b   #0A8h, R14              ; Load command to move cursor
             call    #COMMANDLCD             ; Send command to move cursor
             inc     R13                     ; Fetch next Cstring
-STATICMSGA2 mov.b   @R13+, R14              ; Load character to R14
-            call    #WRITELCD               ; Write charater to LCD
-            cmp.b   #00h, 0(R13)            ; Is this the null character?
-            jnz     STATICMSGA2             ; If it's not, continue loop
+            call    #WRITESTR               ; Write second line
             ret
 
 ;------------------------------------------------------------------------------
@@ -133,7 +193,23 @@ WRITELCD    mov.b   R14, &P1OUT             ; Load SYMBOL in Port 1
             ret
 
 ;------------------------------------------------------------------------------
-;                   SUBROUTINE DELAY15m |~15.001ms|OVERALL cycles = 16501
+;                   SUBROUTINE DELAY500ms |~500.01ms|OVERALL cycles = 550,010
+;------------------------------------------------------------------------------
+DELAY500M   mov     #50000, R15             ; Load number of iterations
+DELAY500MA  dec     R15                     ; Decrement number of iterations
+            nop                             ; Small Delay
+            nop                             ; Small Delay
+            nop                             ; Small Delay
+            nop                             ; Small Delay
+            nop                             ; Small Delay
+            nop                             ; Small Delay
+            nop                             ; Small Delay
+            nop                             ; Small Delay
+            jnz     DELAY500MA              ; If Z != 0 continue looping
+            ret
+
+;------------------------------------------------------------------------------
+;                   SUBROUTINE DELAY15m |~15.001ms|OVERALL cycles = 16,501
 ;------------------------------------------------------------------------------
 DELAY15M    mov     #5497, R15              ; Load number of iterations
 DELAY15MA   dec     R15                     ; Decrement number of iterations
@@ -141,7 +217,7 @@ DELAY15MA   dec     R15                     ; Decrement number of iterations
             ret
 
 ;------------------------------------------------------------------------------
-;                   SUBROUTINE DELAY5m |5.00ms|OVERALL cycles = 5500
+;                   SUBROUTINE DELAY5m |5.00ms|OVERALL cycles = 5,500
 ;------------------------------------------------------------------------------
 DELAY5M     mov     #1830, R15              ; Load number of iterations
 DELAY5MA    dec     R15                     ; Decrement number of iterations
@@ -160,6 +236,10 @@ DELAY160UA  dec     R15                     ; Decrement number of iterations
 ;                   Static Messages - Cstring
 ;------------------------------------------------------------------------------
 MSGSTART    DB      "Presiona el",  "Boton Principal"
+MSGDIFF     DB      "Escoja Modo de", "Operacion"
+MSGBASIC    DB      "     Basico     ", "Si=B1      No=B2"
+MSGINTER    DB      "   Intermedio   ", "Si=B1      No=B2"
+MSGADVAN    DB      "    Avanzado    ", "Si=B1      No=B2"
 MSGUP       DB      "Avanza al", "Proximo Nivel"
 MSGDOWN     DB      "Baja de Nivel", " "
 MSGWON      DB      "Felicidades! :)", "Usted ha Ganado"
@@ -177,4 +257,3 @@ FAILNEXT    DB      0, 0, 1, 2, 3, 3, 4
             ORG     0FFFEh                  ; MSP RESET Vector
             DW      RESET                   ; Address of label RESET
             END
-

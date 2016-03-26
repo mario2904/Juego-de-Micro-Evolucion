@@ -133,16 +133,16 @@ DIFFCHOSEN  delay   #6000                   ; delay of 0.5s for debouncing
 ;                   Set initial Level to 1
 ;------------------------------------------------------------------------------
 ;                   R5  = Level
-;                   1   - TRANSISTOR
-;                   2   - NAND
-;                   4   - FLIP/FLOP
-;                   8   - REGISTER
-;                   16  - COUNTER
-;                   32  - ALU
-;                   64  - CPU
-;                   128 - MCU
+;                   0   - TRANSISTOR
+;                   1   - NAND
+;                   2   - FLIP/FLOP
+;                   3   - REGISTER
+;                   4  - COUNTER
+;                   5  - ALU
+;                   6  - CPU
+;                   7 - MCU
 ;------------------------------------------------------------------------------
-            mov.b   #01h, R5                ; Set initial level to 1
+            mov.b   #00h, R5                ; Set initial level to 0
 
 ;------------------------------------------------------------------------------
 ;****************** Start MainLoop ********************************************
@@ -159,8 +159,10 @@ MAINLOOP    mov.b   #01h, R14               ; Load command Clear Display
             call    #WRITESTR               ; Write string in 1st line
             mov.b   #0C0h, R14              ; Load command to move cursor 2nd LN
             call    #COMMANDLCD             ; Send command to move cursor 2nd LN
+            rla.b   R5
             mov     WHICHLVL(R5), R13       ; Load Cstring of current
                                             ; level message
+            rra.b   R5
             call    #WRITESTR               ; Write string in 2nd line
 
             delay   #24000                  ; Wait 2 seconds to show message
@@ -195,7 +197,7 @@ MAINLOOP    mov.b   #01h, R14               ; Load command Clear Display
 
 ;------------------------------------------------------------------------------
 ;                   Start Counter
-;-----------------------------------------------------------------------------
+;------------------------------------------------------------------------------
             bic.b   #04h, &P2SEL            ; Allow pin P2.2 to interrupt
             bis.b   #04h, &P2IE             ; Enable local interrupt
             bic.b   #0Ch, &P2IFG            ; Disable Interrupt Flag
@@ -219,10 +221,51 @@ TOGGLE1     mov.b   PIVOT, R14              ; Load character to R14
             call    #WRITELCD               ; Write charater to LCD
             jmp     TOGGLE
 
-CONTINUE    nop
+CONTINUE    sub.b   #0C0h, R15              ; Calculate offset, now R15 = Value
+
+            bis.b   #04h, &P2SEL            ; Don't Allow pin P2.2 to interrupt
+            bic.b   #04h, &P2IE             ; Disable local interrupt
+            bic.b   #0Ch, &P2IFG            ; Disable Interrupt Flag
+
+            mov.b   #01h, R14               ; Load command Clear Display
+            call    #COMMANDLCD             ; Send command to Clear Display
+            delay   #180                    ; Delay of 15ms
+;------------------------------------------------------------------------------
+;                   Calculate Absolute Value
+;------------------------------------------------------------------------------
+            sub.b   #07, R15                ; Subtract from 7
+            jn      CONTINUE1
+            jmp     CONTINUE2
+
+CONTINUE1   inv.b   R15                     ; neg the value by 2's complement
+            inc.b   R15                     ;
+;------------------------------------------------------------------------------
+CONTINUE2   cmp.b   CONDITION(R5), R15      ; R15 < CONDITION ?
+            jl      YES1                    ; YES
+NO1         cmp.b   #0h, R5                 ; No, Are you in level 0?
+            jz      YOULOST                 ; YES , Then you lost the game
+            mov.b   FAILNEXT(R5), R5        ; Level down
+            jmp     MAINLOOP                ; Continue playing
+
+YES1        inc.b   R5                      ; Level up
+            cmp.b   #07h, R5                ; Are you now in Last level 7?
+            jz      YOUWON                  ; Yes, You won the game!
+            jmp     MAINLOOP                ; Continue playing
 
 
-HERE        jmp     HERE
+;------------------------------------------------------------------------------
+;                   YOU WON STATE
+;------------------------------------------------------------------------------
+YOUWON      mov     #MSGWON, R13            ; Load Cstring of You Won! message
+            call    #WRITEMSG               ; Write message
+HERE1       jmp     HERE1                   ; END!
+
+;------------------------------------------------------------------------------
+;                   YOU WON STATE
+;------------------------------------------------------------------------------
+YOULOST     mov     #MSGLOST, R13           ; Load Cstring of You Lost! message
+            call    #WRITEMSG               ; Write message
+HERE2       jmp     HERE2                   ; END!
 
 ;------------------------------------------------------------------------------
 ;                   LCD - Write 1 line string Message
@@ -312,6 +355,24 @@ WRITELCD    mov.b   R14, &P1OUT             ; Load SYMBOL in Port 1
             ret
 
 ;------------------------------------------------------------------------------
+;                   ISR of TA0 - Delay
+;------------------------------------------------------------------------------
+TA0CCR0_ISR mov.w   #0, TA0CCR0             ; Stop Timer
+            bic.w   #GIE+LPM0, 0(SP)        ; Disable interrupts and
+                                            ; Get out of Low power mode
+            reti
+
+;------------------------------------------------------------------------------
+;                   ISR of Push Button B1 - Pin P2.2
+;------------------------------------------------------------------------------
+PB_ISR      bic.b   #0Ch, &P2IFG            ; Disable Interrupt Flag
+            mov.w   #0, TA0CCR0             ; Stop Timer
+            bic.w   #GIE+LPM0, 0(SP)        ; Disable interrupts and
+                                            ; Get out of Low power mode
+            mov.w   #CONTINUE, 2(SP)        ; After reti, go to Address CONTINUE
+            reti
+
+;------------------------------------------------------------------------------
 ;                   Switch Statements
 ;------------------------------------------------------------------------------
 WHICHDIFF   DW      MSGADVAN, MSGINTER, MSGBASIC
@@ -349,26 +410,8 @@ PIVOT       DB      "^"
 ;------------------------------------------------------------------------------
 ;                   Lookup Tables - Index=Level
 ;------------------------------------------------------------------------------
-CONDITION   DB      4, 4, 3, 3, 3, 2, 0
+CONDITION   DB      4, 4, 3, 3, 3, 2, 1
 FAILNEXT    DB      0, 0, 1, 2, 3, 3, 4
-
-;------------------------------------------------------------------------------
-;                   ISR of TA0 - Delay
-;------------------------------------------------------------------------------
-TA0CCR0_ISR mov.w   #0, TA0CCR0             ; Stop Timer
-            bic.w   #GIE+LPM0, 0(SP)        ; Disable interrupts and
-                                            ; Get out of Low power mode
-            reti
-
-;------------------------------------------------------------------------------
-;                   ISR of Push Button B1 - Pin P2.2
-;------------------------------------------------------------------------------
-PB_ISR      bic.b   #0Ch, &P2IFG            ; Disable Interrupt Flag
-            mov.w   #0, TA0CCR0             ; Stop Timer
-            bic.w   #GIE+LPM0, 0(SP)        ; Disable interrupts and
-                                            ; Get out of Low power mode
-            mov.w   #CONTINUE, 2(SP)        ; After reti, go to Address CONTINUE
-            reti
 
 ;------------------------------------------------------------------------------
 ;                       Interrupt Vectors
@@ -379,5 +422,4 @@ PB_ISR      bic.b   #0Ch, &P2IFG            ; Disable Interrupt Flag
             DW      TA0CCR0_ISR             ; Timer TA0 interrupt subrutine
             ORG     0FFE6h                  ; Interrupt vector of P2
             DW      PB_ISR                  ; Address of label PB_ISR
-
             END

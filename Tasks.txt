@@ -30,8 +30,8 @@ Game Logic Tasks / States:
         + "    Avanzado    "
     + Implement longer delay for debouncing
         + 500ms delay
-- Start Counter and Select Number State
-    - Add more Static messages to call with previously implemented subroutines
++ Start Counter and Select Number State
+    + Add more Static messages to call with previously implemented subroutines
         + "Presiona B1 Para Detener"
         + "0123456789ABCDEF"
         + "Esta en Nivel"
@@ -44,17 +44,17 @@ Game Logic Tasks / States:
         + "6 - CPU"
         + "7 - MCU"
         + "^"   PIVOT
-    - Implement delays
-        - 100ms
-        - 200ms
-        - 400ms
+    + Implement delays
+        + 100ms
+        + 200ms
+        + 400ms
 + Changed Delay implementation. Now it uses internal Timer.
 
 Registers:
 
 NAME    | WHERE                                 | Description
 __________________________________________________________________________________
-R15     | Delay subroutines                     | Used as a counter
+R15     | Throughout the game (Changes)         | Value of chosen number
 R14     | Subroutines COMMANDLCD and WRITELCD   | Used to pass value to subroutine
 R13     | Subroutine WRITESTR and WRITEMSG      | Used to pass value and as Iterator
 R4      | Throughout the game (Stays the same)  | Holds the value of difficulty

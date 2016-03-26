@@ -1,9 +1,30 @@
 #include    "msp430.h"
+
+;------------------------------------------------------------------------------
+;           Declare DELAY Macro
+;------------------------------------------------------------------------------
+delay       MACRO   COUNT
+            mov.w   COUNT, TA0CCR0          ; Set Count limit
+            bis.w   #GIE+LPM0, SR           ; enable interrupts and go to
+                                            ; Low power mode
+            nop
+            ENDM
+
 ;------------------------------------------------------------------------------
             ORG     0C000h                  ; Program Start
 ;------------------------------------------------------------------------------
 RESET       mov     #0280h, SP              ; Initialize Stackpointer
 StopWDT     mov     #WDTPW+WDTHOLD, &WDTCTL ; Stop WDT
+
+;------------------------------------------------------------------------------
+;                   Configure Timers
+;------------------------------------------------------------------------------
+            bis.b   #LFXT1S_2,&BCSCTL3      ; ACLK = VLO (Very Low Clock 12KHz)
+                                            ; setting bits 4 and 5 (LFXT1S) to 2
+                                            ; in the Basic Clock
+                                            ; System Control Register 3 (BCSCTL3)
+            mov.w   #CCIE, &CCTL0           ; Enable CCR0 interrupts
+            mov.w   #TASSEL_1+MC_1, &TA0CTL ; Use ACLK, up-mode
 
 ;------------------------------------------------------------------------------
 ;                   Configure Ports
@@ -20,21 +41,25 @@ StopWDT     mov     #WDTPW+WDTHOLD, &WDTCTL ; Stop WDT
                                             ; and P2.3
             bis.b   #0Ch, &P2OUT            ; Make it pull-up both internal
                                             ; resistors
+;           bic.b   #0Ch, &P2SEL            ; Allow pins to interrupt
+;           bis.b   #0Ch, &P2IE             ; Enable local interrupt
+
 
 ;------------------------------------------------------------------------------
 ;                   Initialize LCD
 ;------------------------------------------------------------------------------
             bic.b   #01h, &P1OUT            ; Turn off ENABLE
-            call    #DELAY15M               ; Wait for 15ms
+
+            delay   #180                    ; Delay of 15ms
             mov.b   #030h, R14              ; Load command Wake
             call    #COMMANDLCD             ; Send command to Wake LCD #1
-            call    #DELAY5M                ; Wait for 5ms
+            delay   #60                     ; Delay of 5ms
             mov.b   #030h, R14              ; Load command Wake
             call    #COMMANDLCD             ; Send command to Wake LCD #2
-            call    #DELAY160U              ; Wait for 160us
+            delay   #2                      ; Delay of ~160u
             mov.b   #030h, R14              ; Load command Wake
             call    #COMMANDLCD             ; Send command to Wake LCD #3
-            call    #DELAY160U              ; Wait for 160us
+            delay   #2                      ; Delay of ~160u
             mov.b   #038h, R14              ; Load command set 8-bit/2-line
             call    #COMMANDLCD             ; Send command to set 8-bit/2-line
             mov.b   #010h, R14              ; Load command set cursor
@@ -47,7 +72,8 @@ StopWDT     mov     #WDTPW+WDTHOLD, &WDTCTL ; Stop WDT
             call    #COMMANDLCD             ; Send command Entry mode set
             mov.b   #01h, R14               ; Load command Clear Display
             call    #COMMANDLCD             ; Send command to Clear Display
-            call    #DELAY15M               ; Wait until LCD is stable
+            delay   #180                    ; Delay of 15ms
+                                            ; Wait until LCD is stable
 
 ;------------------------------------------------------------------------------
 ;                   Show First Message
@@ -60,28 +86,27 @@ POLL1       bit.b   #04h, &P2IN             ; Poll Button B1 until pressed
                                             ; Active high or Active low
 
 ;------------------------------------------------------------------------------
-;                   Choose Difficulty Level
+;                   Choose Difficulty Level State
 ;------------------------------------------------------------------------------
 ;                   R4 = Difficulty Level
 ;                   4 - Basic
 ;                   2 - Intermediate
-;                   0 - Advanced
+;                   1 - Advanced
 ;------------------------------------------------------------------------------
             mov     #MSGDIFF, R13           ; Load Cstring of difficulty message
             call    #WRITEMSG               ; Write message
-            call    #DELAY500M              ; Wait ~2 seconds to show message
-            call    #DELAY500M              ;
-            call    #DELAY500M              ;
-            call    #DELAY500M              ;
+            delay   #24000                  ; Wait 2 seconds to show message
+
             mov.b   #01h, R14               ; Load command Clear Display
             call    #COMMANDLCD             ; Send command to Clear Display
-            call    #DELAY15M               ; Wait until LCD is stable
-            mov.b   #0A8h, R14              ; Load command to move cursor 2nd LN
+            delay   #180                    ; Delay of 15ms
+                                            ; Wait until LCD is stable
+            mov.b   #0C0h, R14              ; Load command to move cursor 2nd LN
             call    #COMMANDLCD             ; Send command to move cursor 2nd LN
             mov     #MSGOPTION, R13         ; Load Cstring of option message
             call    #WRITESTR               ; Write string in 2nd line
 
-LOOPAGAIN   mov.b   #04h, R4                ; Start assuming difficulty = 2
+LOOPAGAIN   mov.b   #04h, R4                ; Start assuming difficulty = 4
 ASKNEXTDIFF mov     WHICHDIFF(R4), R13      ; Load Cstring of currently
                                             ; assumed difficulty message
             mov.b   #080h, R14              ; Load command to move cursor 1st LN
@@ -95,18 +120,112 @@ POLL2       bit.b   #04h, &P2IN             ; Poll Button 1
             jnz     POLL2                   ; This line will change depending
                                             ; on the button used
                                             ; Active high or Active low
-            call    #DELAY500M              ; For debouncing
+            delay   #6000                   ; delay of 0.5s for debouncing
             clrc                            ; clear carry bit
             rrc.b   R4                      ; Assume lower difficulty
             jnc     ASKNEXTDIFF             ; Ask for next difficulty
             jmp     LOOPAGAIN
 
-DIFFCHOSEN                                  ; Finished Decision Making
+DIFFCHOSEN  delay   #6000                   ; delay of 0.5s for debouncing
+                                            ; Finished Decision Making
+
+;------------------------------------------------------------------------------
+;                   Set initial Level to 1
+;------------------------------------------------------------------------------
+;                   R5  = Level
+;                   1   - TRANSISTOR
+;                   2   - NAND
+;                   4   - FLIP/FLOP
+;                   8   - REGISTER
+;                   16  - COUNTER
+;                   32  - ALU
+;                   64  - CPU
+;                   128 - MCU
+;------------------------------------------------------------------------------
+            mov.b   #01h, R5                ; Set initial level to 1
+
+;------------------------------------------------------------------------------
+;****************** Start MainLoop ********************************************
+;------------------------------------------------------------------------------
+MAINLOOP    mov.b   #01h, R14               ; Load command Clear Display
+            call    #COMMANDLCD             ; Send command to Clear Display
+            delay   #180                    ; Delay of 15ms
+                                            ; Wait until LCD is stable
+
+;------------------------------------------------------------------------------
+;                   Show Current Level
+;------------------------------------------------------------------------------
+            mov     #MSGLVL, R13            ; Load Cstring of level message
+            call    #WRITESTR               ; Write string in 1st line
+            mov.b   #0C0h, R14              ; Load command to move cursor 2nd LN
+            call    #COMMANDLCD             ; Send command to move cursor 2nd LN
+            mov     WHICHLVL(R5), R13       ; Load Cstring of current
+                                            ; level message
+            call    #WRITESTR               ; Write string in 2nd line
+
+            delay   #24000                  ; Wait 2 seconds to show message
+
+;------------------------------------------------------------------------------
+;                   Start Counter and Select Number State
+;------------------------------------------------------------------------------
+            mov.b   #01h, R14               ; Load command Clear Display
+            call    #COMMANDLCD             ; Send command to Clear Display
+            delay   #180                    ; Delay of 15ms
+                                            ; Wait until LCD is stable
+
+            mov     #MSGINSTR, R13          ; Load Cstring of instruct message
+            call    #WRITEMSG               ; Write message
+            delay   #24000                  ; Wait 2 seconds to show message
+
+            mov.b   #01h, R14               ; Load command Clear Display
+            call    #COMMANDLCD             ; Send command to Clear Display
+            delay   #180                    ; Delay of 15ms
+                                            ; Wait until LCD is stable
+
+            mov     #MSGNUMBS, R13          ; Load Cstring of numbers message
+            call    #WRITESTR               ; Write string in 1st line
+
+            mov.b   #0C0h, R15              ; Load address of PIVOT in R15
+
+            mov.b   R15, R14                ; Load command to move cursor 2nd LN
+            call    #COMMANDLCD             ; Send command to move cursor 2nd LN
+
+            mov.b   PIVOT, R14              ; Load character to R14
+            call    #WRITELCD               ; Write charater to LCD
+
+;------------------------------------------------------------------------------
+;                   Start Counter
+;-----------------------------------------------------------------------------
+            bic.b   #04h, &P2SEL            ; Allow pin P2.2 to interrupt
+            bis.b   #04h, &P2IE             ; Enable local interrupt
+            bic.b   #0Ch, &P2IFG            ; Disable Interrupt Flag
+
+TOGGLE      delay   WHICHDELAY(R4)          ; Delay depending on difficulty
+            mov.b   R15, R14                ; Load command to move cursor (back)
+            call    #COMMANDLCD             ; Send command to move cursor (back)
+            mov.b   #020h, R14              ; Load Character " " to R14
+            call    #WRITELCD               ; Write charater to LCD
+
+            inc.b   R15                     ; Point to current cursor address
+
+            cmp.b   #0D0h, R15              ; LCD Address out of bounds?
+            jnz     TOGGLE1
+
+            mov.b   #0C0h, R15              ; Load address of 1st character
+                                            ; of second line in R15
+            mov.b   R15, R14                ; Load command to move cursor (back)
+            call    #COMMANDLCD             ; Send command to move cursor (back)
+TOGGLE1     mov.b   PIVOT, R14              ; Load character to R14
+            call    #WRITELCD               ; Write charater to LCD
+            jmp     TOGGLE
+
+CONTINUE    nop
+
 
 HERE        jmp     HERE
 
 ;------------------------------------------------------------------------------
-;                   LCD - Write 1 line string Message in the second line
+;                   LCD - Write 1 line string Message
 ;------------------------------------------------------------------------------
 ;                   R13 = Pointer to message Cstring
 ;                   R14 = COMMAND/CHARACTER
@@ -125,9 +244,10 @@ WRITESTR    mov.b   @R13+, R14              ; Load character to R14
 ;------------------------------------------------------------------------------
 WRITEMSG    mov.b   #01h, R14               ; Load command Clear Display
             call    #COMMANDLCD             ; Send command to Clear Display
-            call    #DELAY15M               ; Wait until LCD is stable
+            delay   #180                    ; Delay of 15ms
+                                            ; Wait until LCD is stable
             call    #WRITESTR               ; Write first line
-            mov.b   #0A8h, R14              ; Load command to move cursor
+            mov.b   #0C0h, R14              ; Load command to move cursor
             call    #COMMANDLCD             ; Send command to move cursor
             inc     R13                     ; Fetch next Cstring
             call    #WRITESTR               ; Write second line
@@ -151,6 +271,10 @@ COMMANDLCD  mov.b   R14, &P1OUT             ; Load COMMAND in Port 1
 ;------------------------------------------------------------------------------
 ;                   Dummy Delay - Wait for LCD to stabilize
 ;------------------------------------------------------------------------------
+            nop                             ; Small Delay
+            nop                             ; Small Delay
+            nop                             ; Small Delay
+            nop                             ; Small Delay
             nop                             ; Small Delay
             nop                             ; Small Delay
             nop                             ; Small Delay
@@ -180,53 +304,21 @@ WRITELCD    mov.b   R14, &P1OUT             ; Load SYMBOL in Port 1
             nop                             ; Small Delay
             nop                             ; Small Delay
             nop                             ; Small Delay
-;------------------------------------------------------------------------------
-            ret
-
-;------------------------------------------------------------------------------
-;                   SUBROUTINE DELAY500ms |~500.01ms|OVERALL cycles = 550,010
-;------------------------------------------------------------------------------
-DELAY500M   mov     #50000, R15             ; Load number of iterations
-DELAY500MA  dec     R15                     ; Decrement number of iterations
             nop                             ; Small Delay
             nop                             ; Small Delay
             nop                             ; Small Delay
             nop                             ; Small Delay
-            nop                             ; Small Delay
-            nop                             ; Small Delay
-            nop                             ; Small Delay
-            nop                             ; Small Delay
-            jnz     DELAY500MA              ; If Z != 0 continue looping
-            ret
-
 ;------------------------------------------------------------------------------
-;                   SUBROUTINE DELAY15m |~15.001ms|OVERALL cycles = 16,501
-;------------------------------------------------------------------------------
-DELAY15M    mov     #5497, R15              ; Load number of iterations
-DELAY15MA   dec     R15                     ; Decrement number of iterations
-            jnz     DELAY15MA               ; If Z != 0 continue looping
-            ret
-
-;------------------------------------------------------------------------------
-;                   SUBROUTINE DELAY5m |5.00ms|OVERALL cycles = 5,500
-;------------------------------------------------------------------------------
-DELAY5M     mov     #1830, R15              ; Load number of iterations
-DELAY5MA    dec     R15                     ; Decrement number of iterations
-            jnz     DELAY5MA                ; If Z != 0 continue looping
-            ret
-
-;------------------------------------------------------------------------------
-;                   SUBROUTINE DELAY160U |~161.81us|OVERALL cycles = 178
-;------------------------------------------------------------------------------
-DELAY160U   mov     #56, R15                ; Load number of iterations
-DELAY160UA  dec     R15                     ; Decrement number of iterations
-            jnz     DELAY160UA              ; If Z != 0 continue looping
             ret
 
 ;------------------------------------------------------------------------------
 ;                   Switch Statements
 ;------------------------------------------------------------------------------
 WHICHDIFF   DW      MSGADVAN, MSGINTER, MSGBASIC
+WHICHLVL    DW      MSGLV0, MSGLV1, MSGLV2, MSGLV3, MSGLV4, MSGLV5, MSGLV6
+            DW      MSGLV7
+WHICHDELAY  DW      1200, 2400, 4800        ; For delays .1s, .2s, .4s
+                                            ; respectively
 
 ;------------------------------------------------------------------------------
 ;                   Static Messages - Cstring
@@ -237,10 +329,22 @@ MSGOPTION   DB      "Si=B1      No=B2"
 MSGBASIC    DB      "     Basico     "
 MSGINTER    DB      "   Intermedio   "
 MSGADVAN    DB      "    Avanzado    "
+MSGINSTR    DB      "Presiona B1", "Para Detener"
+MSGNUMBS    DB      "0123456789ABCDEF"
+MSGLVL      DB      "Esta en Nivel"
+MSGLV0      DB      "0 - TRANSISTOR"
+MSGLV1      DB      "1 - NAND"
+MSGLV2      DB      "2 - FLIP/FLOP"
+MSGLV3      DB      "3 - REGISTER"
+MSGLV4      DB      "4 - COUNTER"
+MSGLV5      DB      "5 - ALU"
+MSGLV6      DB      "6 - CPU"
+MSGLV7      DB      "7 - MCU"
 MSGUP       DB      "Avanza al", "Proximo Nivel"
 MSGDOWN     DB      "Baja de Nivel", " "
 MSGWON      DB      "Felicidades! :)", "Usted ha Ganado"
 MSGLOST     DB      "Lo sentimos :(", "Usted ha Perdido"
+PIVOT       DB      "^"
 
 ;------------------------------------------------------------------------------
 ;                   Lookup Tables - Index=Level
@@ -249,8 +353,31 @@ CONDITION   DB      4, 4, 3, 3, 3, 2, 0
 FAILNEXT    DB      0, 0, 1, 2, 3, 3, 4
 
 ;------------------------------------------------------------------------------
+;                   ISR of TA0 - Delay
+;------------------------------------------------------------------------------
+TA0CCR0_ISR mov.w   #0, TA0CCR0             ; Stop Timer
+            bic.w   #GIE+LPM0, 0(SP)        ; Disable interrupts and
+                                            ; Get out of Low power mode
+            reti
+
+;------------------------------------------------------------------------------
+;                   ISR of Push Button B1 - Pin P2.2
+;------------------------------------------------------------------------------
+PB_ISR      bic.b   #0Ch, &P2IFG            ; Disable Interrupt Flag
+            mov.w   #0, TA0CCR0             ; Stop Timer
+            bic.w   #GIE+LPM0, 0(SP)        ; Disable interrupts and
+                                            ; Get out of Low power mode
+            mov.w   #CONTINUE, 2(SP)        ; After reti, go to Address CONTINUE
+            reti
+
+;------------------------------------------------------------------------------
 ;                       Interrupt Vectors
 ;------------------------------------------------------------------------------
             ORG     0FFFEh                  ; MSP RESET Vector
             DW      RESET                   ; Address of label RESET
+            ORG     0FFF2h                  ; Interrupt vector (TA0CCR0 CCIFG)
+            DW      TA0CCR0_ISR             ; Timer TA0 interrupt subrutine
+            ORG     0FFE6h                  ; Interrupt vector of P2
+            DW      PB_ISR                  ; Address of label PB_ISR
+
             END

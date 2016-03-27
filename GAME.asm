@@ -238,7 +238,7 @@ CONTINUE1   inv.b   R15                     ; neg the value by 2's complement
 ;                   Check Condition
 ;------------------------------------------------------------------------------
 CONTINUE2   cmp.b   CONDITION(R5), R15      ; R15 < CONDITION ?
-            jl      YES1                    ; YES
+            jl      YES                     ; YES
 NO          cmp.b   #0h, R5                 ; No, Are you in level 0?
             jz      YOULOST                 ; YES, Then you lost the game
             mov.b   FAILNEXT(R5), R5        ; Level down

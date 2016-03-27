@@ -221,6 +221,7 @@ CONTINUE    sub.b   #0C0h, R15              ; Calculate offset, now R15 = Value
             bic.b   #04h, &P2IE             ; Disable local interrupt
             bic.b   #0Ch, &P2IFG            ; Disable Interrupt Flag
 
+            delay   #12000                  ; Wait 1 second to show number
             mov.b   #01h, R14               ; Load command Clear Display
             call    #COMMANDLCD             ; Send command to Clear Display
             delay   #180                    ; Delay of 15ms

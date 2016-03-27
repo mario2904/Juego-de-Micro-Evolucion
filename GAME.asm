@@ -1,5 +1,4 @@
 #include    "msp430.h"
-
 ;------------------------------------------------------------------------------
 ;           Declare DELAY Macro
 ;------------------------------------------------------------------------------
@@ -41,15 +40,11 @@ StopWDT     mov     #WDTPW+WDTHOLD, &WDTCTL ; Stop WDT
                                             ; and P2.3
             bis.b   #0Ch, &P2OUT            ; Make it pull-up both internal
                                             ; resistors
-;           bic.b   #0Ch, &P2SEL            ; Allow pins to interrupt
-;           bis.b   #0Ch, &P2IE             ; Enable local interrupt
-
 
 ;------------------------------------------------------------------------------
 ;                   Initialize LCD
 ;------------------------------------------------------------------------------
             bic.b   #01h, &P1OUT            ; Turn off ENABLE
-
             delay   #180                    ; Delay of 15ms
             mov.b   #030h, R14              ; Load command Wake
             call    #COMMANDLCD             ; Send command to Wake LCD #1
@@ -159,12 +154,11 @@ MAINLOOP    mov.b   #01h, R14               ; Load command Clear Display
             call    #WRITESTR               ; Write string in 1st line
             mov.b   #0C0h, R14              ; Load command to move cursor 2nd LN
             call    #COMMANDLCD             ; Send command to move cursor 2nd LN
-            rla.b   R5
+            rla.b   R5                      ; For indexing address (16-bit)
             mov     WHICHLVL(R5), R13       ; Load Cstring of current
                                             ; level message
-            rra.b   R5
+            rra.b   R5                      ; Return to readable value
             call    #WRITESTR               ; Write string in 2nd line
-
             delay   #24000                  ; Wait 2 seconds to show message
 
 ;------------------------------------------------------------------------------
@@ -239,19 +233,25 @@ CONTINUE    sub.b   #0C0h, R15              ; Calculate offset, now R15 = Value
 
 CONTINUE1   inv.b   R15                     ; neg the value by 2's complement
             inc.b   R15                     ;
+
+;------------------------------------------------------------------------------
+;                   Check Condition
 ;------------------------------------------------------------------------------
 CONTINUE2   cmp.b   CONDITION(R5), R15      ; R15 < CONDITION ?
             jl      YES1                    ; YES
-NO1         cmp.b   #0h, R5                 ; No, Are you in level 0?
-            jz      YOULOST                 ; YES , Then you lost the game
+NO          cmp.b   #0h, R5                 ; No, Are you in level 0?
+            jz      YOULOST                 ; YES, Then you lost the game
             mov.b   FAILNEXT(R5), R5        ; Level down
+            mov     #MSGDOWN, R13           ; Load Cstring of level down message
+            call    #WRITEMSG               ; Write message
             jmp     MAINLOOP                ; Continue playing
 
-YES1        inc.b   R5                      ; Level up
+YES         inc.b   R5                      ; Level up
             cmp.b   #07h, R5                ; Are you now in Last level 7?
             jz      YOUWON                  ; Yes, You won the game!
+            mov     #MSGUP, R13             ; Load Cstring of level up message
+            call    #WRITEMSG               ; Write message
             jmp     MAINLOOP                ; Continue playing
-
 
 ;------------------------------------------------------------------------------
 ;                   YOU WON STATE
@@ -261,11 +261,15 @@ YOUWON      mov     #MSGWON, R13            ; Load Cstring of You Won! message
 HERE1       jmp     HERE1                   ; END!
 
 ;------------------------------------------------------------------------------
-;                   YOU WON STATE
+;                   YOU LOST STATE
 ;------------------------------------------------------------------------------
 YOULOST     mov     #MSGLOST, R13           ; Load Cstring of You Lost! message
             call    #WRITEMSG               ; Write message
 HERE2       jmp     HERE2                   ; END!
+
+;------------------------------------------------------------------------------
+;                   SUBROUTINES
+;------------------------------------------------------------------------------
 
 ;------------------------------------------------------------------------------
 ;                   LCD - Write 1 line string Message

@@ -115,13 +115,13 @@ POLL2       bit.b   #04h, &P2IN             ; Poll Button 1
             jnz     POLL2                   ; This line will change depending
                                             ; on the button used
                                             ; Active high or Active low
-            delay   #6000                   ; delay of 0.5s for debouncing
+            delay   #6000                   ; Delay of 0.5s for debouncing
             clrc                            ; clear carry bit
             rrc.b   R4                      ; Assume lower difficulty
             jnc     ASKNEXTDIFF             ; Ask for next difficulty
             jmp     LOOPAGAIN
 
-DIFFCHOSEN  delay   #6000                   ; delay of 0.5s for debouncing
+DIFFCHOSEN  delay   #6000                   ; Delay of 0.5s for debouncing
                                             ; Finished Decision Making
 
 ;------------------------------------------------------------------------------
@@ -239,11 +239,12 @@ CONTINUE1   inv.b   R15                     ; neg the value by 2's complement
 ;------------------------------------------------------------------------------
 CONTINUE2   cmp.b   CONDITION(R5), R15      ; R15 < CONDITION ?
             jl      YES                     ; YES
-NO          cmp.b   #0h, R5                 ; No, Are you in level 0?
+NO          mov.b   FAILNEXT(R5), R5        ; NO, Level down
+            cmp.b   #0h, R5                 ; Are you in level 0?
             jz      YOULOST                 ; YES, Then you lost the game
-            mov.b   FAILNEXT(R5), R5        ; Level down
             mov     #MSGDOWN, R13           ; Load Cstring of level down message
             call    #WRITEMSG               ; Write message
+            delay   #24000                  ; Wait 2 seconds to show message
             jmp     MAINLOOP                ; Continue playing
 
 YES         inc.b   R5                      ; Level up
@@ -251,6 +252,7 @@ YES         inc.b   R5                      ; Level up
             jz      YOUWON                  ; Yes, You won the game!
             mov     #MSGUP, R13             ; Load Cstring of level up message
             call    #WRITEMSG               ; Write message
+            delay   #24000                  ; Wait 2 seconds to show message
             jmp     MAINLOOP                ; Continue playing
 
 ;------------------------------------------------------------------------------
@@ -382,7 +384,7 @@ PB_ISR      bic.b   #0Ch, &P2IFG            ; Disable Interrupt Flag
 WHICHDIFF   DW      MSGADVAN, MSGINTER, MSGBASIC
 WHICHLVL    DW      MSGLV0, MSGLV1, MSGLV2, MSGLV3, MSGLV4, MSGLV5, MSGLV6
             DW      MSGLV7
-WHICHDELAY  DW      1200, 2400, 4800        ; For delays .1s, .2s, .4s
+WHICHDELAY  DW      1200, 2400, 4800        ; For Delays .1s, .2s, .4s
                                             ; respectively
 
 ;------------------------------------------------------------------------------

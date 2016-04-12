@@ -1,6 +1,7 @@
 #include    "msp430.h"
 ;------------------------------------------------------------------------------
-;           Declare DELAY Macro
+;                   Declare DELAY Macro
+;                   COUNT = Value to count up to
 ;------------------------------------------------------------------------------
 delay       MACRO   COUNT
             mov.w   COUNT, TA0CCR0          ; Set Count limit
@@ -10,13 +11,51 @@ delay       MACRO   COUNT
             ENDM
 
 ;------------------------------------------------------------------------------
+;                   Declare WRITE Macro
+;                   CHAR = ASCII value of character to write in LCD
+;                   R14  = (CHARACTER) DATUM to pass to the LCD
+;------------------------------------------------------------------------------
+lcdwrt      MACRO   CHAR
+            bis.b   #02h, &P2OUT            ; Turn on REGISTER SELECT
+            mov.b   CHAR, R14               ; Load character CHAR
+            call    #WRT_CMD_LCD            ; Write charater CHAR to LCD
+            ENDM
+
+;------------------------------------------------------------------------------
+;                   Declare COMMAND Macro
+;                   CMD = COMMAND to send the LCD
+;                   R14 = (COMMAND) DATUM to pass to the LCD
+;------------------------------------------------------------------------------
+lcdcmd      MACRO   CMD
+            bic.b   #02h, &P2OUT            ; Turn on REGISTER SELECT
+            mov.b   CMD, R14                ; Load command CMD
+            call    #WRT_CMD_LCD            ; Send command CMD to LCD
+            ENDM
+
+;------------------------------------------------------------------------------
+;                   Declare ABS Macro
+;                   NUM = NUMBER to calculate absolute value
+;------------------------------------------------------------------------------
+abs         MACRO   NUM
+            LOCAL   CONTINUE1, CONTINUE2
+            sub.b   #07, NUM                ; Subtract from 7
+            jn      CONTINUE1
+            jmp     CONTINUE2
+
+CONTINUE1   inv.b   NUM                     ; neg the value by 2's complement
+            inc.b   NUM                     ;
+
+CONTINUE2
+            ENDM
+
+;------------------------------------------------------------------------------
             ORG     0C000h                  ; Program Start
 ;------------------------------------------------------------------------------
 RESET       mov     #0280h, SP              ; Initialize Stackpointer
 StopWDT     mov     #WDTPW+WDTHOLD, &WDTCTL ; Stop WDT
 
 ;------------------------------------------------------------------------------
-;                   Configure Timers
+;                   Configure Timer
 ;------------------------------------------------------------------------------
             bis.b   #LFXT1S_2,&BCSCTL3      ; ACLK = VLO (Very Low Clock 12KHz)
                                             ; setting bits 4 and 5 (LFXT1S) to 2
@@ -46,27 +85,18 @@ StopWDT     mov     #WDTPW+WDTHOLD, &WDTCTL ; Stop WDT
 ;------------------------------------------------------------------------------
             bic.b   #01h, &P1OUT            ; Turn off ENABLE
             delay   #180                    ; Delay of 15ms
-            mov.b   #030h, R14              ; Load command Wake
-            call    #COMMANDLCD             ; Send command to Wake LCD #1
+            lcdcmd  #030h                   ; Send command to Wake LCD #1
             delay   #60                     ; Delay of 5ms
-            mov.b   #030h, R14              ; Load command Wake
-            call    #COMMANDLCD             ; Send command to Wake LCD #2
+            lcdcmd  #030h                   ; Send command to Wake LCD #2
             delay   #2                      ; Delay of ~160u
-            mov.b   #030h, R14              ; Load command Wake
-            call    #COMMANDLCD             ; Send command to Wake LCD #3
+            lcdcmd  #030h                   ; Send command to Wake LCD #3
             delay   #2                      ; Delay of ~160u
-            mov.b   #038h, R14              ; Load command set 8-bit/2-line
-            call    #COMMANDLCD             ; Send command to set 8-bit/2-line
-            mov.b   #010h, R14              ; Load command set cursor
-            call    #COMMANDLCD             ; Send command to set cursor
-            mov.b   #0Ch, R14               ; Load command Turn on the
+            lcdcmd  #038h                   ; Send command to set 8-bit/2-line
+            lcdcmd  #010h                   ; Send command to set cursor
+            lcdcmd  #0Ch                    ; Send command to Turn on the
                                             ; Display and Cursor
-            call    #COMMANDLCD             ; Send command to Turn on the
-                                            ; Display and Cursor
-            mov.b   #06h, R14               ; Load command Entry mode set
-            call    #COMMANDLCD             ; Send command Entry mode set
-            mov.b   #01h, R14               ; Load command Clear Display
-            call    #COMMANDLCD             ; Send command to Clear Display
+            lcdcmd  #06h                    ; Send command Entry mode set
+            lcdcmd  #01h                    ; Send command to Clear Display
             delay   #180                    ; Delay of 15ms
                                             ; Wait until LCD is stable
 
@@ -92,20 +122,18 @@ POLL1       bit.b   #04h, &P2IN             ; Poll Button B1 until pressed
             call    #WRITEMSG               ; Write message
             delay   #24000                  ; Wait 2 seconds to show message
 
-            mov.b   #01h, R14               ; Load command Clear Display
-            call    #COMMANDLCD             ; Send command to Clear Display
+            lcdcmd  #01h                    ; Send command to Clear Display
             delay   #180                    ; Delay of 15ms
                                             ; Wait until LCD is stable
-            mov.b   #0C0h, R14              ; Load command to move cursor 2nd LN
-            call    #COMMANDLCD             ; Send command to move cursor 2nd LN
+            lcdcmd  #0C0h                   ; Send command to move cursor 2nd LN
             mov     #MSGOPTION, R13         ; Load Cstring of option message
             call    #WRITESTR               ; Write string in 2nd line
 
 LOOPAGAIN   mov.b   #04h, R4                ; Start assuming difficulty = 4
 ASKNEXTDIFF mov     WHICHDIFF(R4), R13      ; Load Cstring of currently
                                             ; assumed difficulty message
-            mov.b   #080h, R14              ; Load command to move cursor 1st LN
-            call    #COMMANDLCD             ; Send command to move cursor 1st LN
+
+            lcdcmd  #080h                   ; Send command to move cursor 1st LN
             call    #WRITESTR               ; Write string in 1st line
 POLL2       bit.b   #04h, &P2IN             ; Poll Button 1
             jz      DIFFCHOSEN              ; This line will change depending
@@ -142,8 +170,7 @@ DIFFCHOSEN  delay   #6000                   ; Delay of 0.5s for debouncing
 ;------------------------------------------------------------------------------
 ;****************** Start MainLoop ********************************************
 ;------------------------------------------------------------------------------
-MAINLOOP    mov.b   #01h, R14               ; Load command Clear Display
-            call    #COMMANDLCD             ; Send command to Clear Display
+MAINLOOP    lcdcmd  #01                     ; Send command to Clear Display
             delay   #180                    ; Delay of 15ms
                                             ; Wait until LCD is stable
 
@@ -152,8 +179,7 @@ MAINLOOP    mov.b   #01h, R14               ; Load command Clear Display
 ;------------------------------------------------------------------------------
             mov     #MSGLVL, R13            ; Load Cstring of level message
             call    #WRITESTR               ; Write string in 1st line
-            mov.b   #0C0h, R14              ; Load command to move cursor 2nd LN
-            call    #COMMANDLCD             ; Send command to move cursor 2nd LN
+            lcdcmd  #0C0h                   ; Send command to move cursor 2nd LN
             rla.b   R5                      ; For indexing address (16-bit)
             mov     WHICHLVL(R5), R13       ; Load Cstring of current
                                             ; level message
@@ -164,8 +190,7 @@ MAINLOOP    mov.b   #01h, R14               ; Load command Clear Display
 ;------------------------------------------------------------------------------
 ;                   Start Counter and Select Number State
 ;------------------------------------------------------------------------------
-            mov.b   #01h, R14               ; Load command Clear Display
-            call    #COMMANDLCD             ; Send command to Clear Display
+            lcdcmd  #01h                    ; Send command to Clear Display
             delay   #180                    ; Delay of 15ms
                                             ; Wait until LCD is stable
 
@@ -173,21 +198,17 @@ MAINLOOP    mov.b   #01h, R14               ; Load command Clear Display
             call    #WRITEMSG               ; Write message
             delay   #24000                  ; Wait 2 seconds to show message
 
-            mov.b   #01h, R14               ; Load command Clear Display
-            call    #COMMANDLCD             ; Send command to Clear Display
+            lcdcmd  #01h                    ; Send command to Clear Display
             delay   #180                    ; Delay of 15ms
                                             ; Wait until LCD is stable
 
             mov     #MSGNUMBS, R13          ; Load Cstring of numbers message
             call    #WRITESTR               ; Write string in 1st line
 
-            mov.b   #0C0h, R15              ; Load address of PIVOT in R15
+            mov.b   #0C0h, R15              ; Load SRAM address of PIVOT in R15
+            lcdcmd  R15                     ; Send command to move cursor 2nd LN
 
-            mov.b   R15, R14                ; Load command to move cursor 2nd LN
-            call    #COMMANDLCD             ; Send command to move cursor 2nd LN
-
-            mov.b   PIVOT, R14              ; Load character to R14
-            call    #WRITELCD               ; Write charater to LCD
+            lcdwrt  PIVOT                   ; Write character PIVOT to LCD
 
 ;------------------------------------------------------------------------------
 ;                   Start Counter
@@ -197,10 +218,8 @@ MAINLOOP    mov.b   #01h, R14               ; Load command Clear Display
             bic.b   #0Ch, &P2IFG            ; Disable Interrupt Flag
 
 TOGGLE      delay   WHICHDELAY(R4)          ; Delay depending on difficulty
-            mov.b   R15, R14                ; Load command to move cursor (back)
-            call    #COMMANDLCD             ; Send command to move cursor (back)
-            mov.b   #020h, R14              ; Load Character " " to R14
-            call    #WRITELCD               ; Write charater to LCD
+            lcdcmd  R15                     ; Send command to move cursor (back)
+            lcdwrt  #020h                   ; Write character " " to LCD
 
             inc.b   R15                     ; Point to current cursor address
 
@@ -209,10 +228,8 @@ TOGGLE      delay   WHICHDELAY(R4)          ; Delay depending on difficulty
 
             mov.b   #0C0h, R15              ; Load address of 1st character
                                             ; of second line in R15
-            mov.b   R15, R14                ; Load command to move cursor (back)
-            call    #COMMANDLCD             ; Send command to move cursor (back)
-TOGGLE1     mov.b   PIVOT, R14              ; Load character to R14
-            call    #WRITELCD               ; Write charater to LCD
+            lcdcmd  R15                     ; Send command to move cursor (back)
+TOGGLE1     lcdwrt  PIVOT                   ; Write charater PIVOT to LCD
             jmp     TOGGLE
 
 CONTINUE    sub.b   #0C0h, R15              ; Calculate offset, now R15 = Value
@@ -222,23 +239,17 @@ CONTINUE    sub.b   #0C0h, R15              ; Calculate offset, now R15 = Value
             bic.b   #0Ch, &P2IFG            ; Disable Interrupt Flag
 
             delay   #12000                  ; Wait 1 second to show number
-            mov.b   #01h, R14               ; Load command Clear Display
-            call    #COMMANDLCD             ; Send command to Clear Display
+            lcdcmd  #01h                    ; Send command to Clear Display
             delay   #180                    ; Delay of 15ms
 ;------------------------------------------------------------------------------
 ;                   Calculate Absolute Value
 ;------------------------------------------------------------------------------
-            sub.b   #07, R15                ; Subtract from 7
-            jn      CONTINUE1
-            jmp     CONTINUE2
-
-CONTINUE1   inv.b   R15                     ; neg the value by 2's complement
-            inc.b   R15                     ;
+            abs     R15                     ; Calculate absolute value
 
 ;------------------------------------------------------------------------------
 ;                   Check Condition
 ;------------------------------------------------------------------------------
-CONTINUE2   cmp.b   CONDITION(R5), R15      ; R15 < CONDITION ?
+            cmp.b   CONDITION(R5), R15      ; R15 < CONDITION ?
             jl      YES                     ; YES
 NO          mov.b   FAILNEXT(R5), R5        ; NO, Level down
             cmp.b   #0h, R5                 ; Are you in level 0?
@@ -261,14 +272,14 @@ YES         inc.b   R5                      ; Level up
 ;------------------------------------------------------------------------------
 YOUWON      mov     #MSGWON, R13            ; Load Cstring of You Won! message
             call    #WRITEMSG               ; Write message
-HERE1       jmp     HERE1                   ; END!
+            jmp     $                       ; END! (endless loop)
 
 ;------------------------------------------------------------------------------
 ;                   YOU LOST STATE
 ;------------------------------------------------------------------------------
 YOULOST     mov     #MSGLOST, R13           ; Load Cstring of You Lost! message
             call    #WRITEMSG               ; Write message
-HERE2       jmp     HERE2                   ; END!
+            jmp     $                       ; END! (endless loop)
 
 ;------------------------------------------------------------------------------
 ;                   SUBROUTINES
@@ -278,10 +289,8 @@ HERE2       jmp     HERE2                   ; END!
 ;                   LCD - Write 1 line string Message
 ;------------------------------------------------------------------------------
 ;                   R13 = Pointer to message Cstring
-;                   R14 = COMMAND/CHARACTER
 ;------------------------------------------------------------------------------
-WRITESTR    mov.b   @R13+, R14              ; Load character to R14
-            call    #WRITELCD               ; Write charater to LCD
+WRITESTR    lcdwrt  @R13+                   ; Write charater to LCD
             cmp.b   #00h, 0(R13)            ; Is this the null character?
             jnz     WRITESTR                ; If it's not, continue loop
             ret
@@ -290,57 +299,24 @@ WRITESTR    mov.b   @R13+, R14              ; Load character to R14
 ;                   LCD - Write 2 line Message
 ;------------------------------------------------------------------------------
 ;                   R13 = Pointer to message Cstring
-;                   R14 = COMMAND/CHARACTER
 ;------------------------------------------------------------------------------
-WRITEMSG    mov.b   #01h, R14               ; Load command Clear Display
-            call    #COMMANDLCD             ; Send command to Clear Display
+WRITEMSG    lcdcmd  #01h                    ; Send command to Clear Display
             delay   #180                    ; Delay of 15ms
                                             ; Wait until LCD is stable
             call    #WRITESTR               ; Write first line
-            mov.b   #0C0h, R14              ; Load command to move cursor
-            call    #COMMANDLCD             ; Send command to move cursor
+            lcdcmd  #0C0h                   ; Send command to move cursor 2nd LN
             inc     R13                     ; Fetch next Cstring
             call    #WRITESTR               ; Write second line
             ret
 
 ;------------------------------------------------------------------------------
-;                   LCD - Command Subroutine
+;                   LCD - WRITE_OR_COMMAND Subroutine
 ;------------------------------------------------------------------------------
 ;                   P2.0 = ENABLE
 ;                   P2.1 = RESGISTER SELECT
-;                   R14  = COMMAND
+;                   R14  = (DATUM) COMMAND/CHARACTER
 ;------------------------------------------------------------------------------
-COMMANDLCD  mov.b   R14, &P1OUT             ; Load COMMAND in Port 1
-            bic.b   #02h, &P2OUT            ; Turn off REGISTER SELECT
-            bis.b   #01h, &P2OUT            ; Turn on ENABLE
-;------------------------------------------------------------------------------
-;                   Delay >= 300ns          Really small!
-            nop                             ; Small Delay
-;------------------------------------------------------------------------------
-            bic.b   #01h, &P2OUT            ; Turn off ENABLE
-;------------------------------------------------------------------------------
-;                   Dummy Delay - Wait for LCD to stabilize
-;------------------------------------------------------------------------------
-            nop                             ; Small Delay
-            nop                             ; Small Delay
-            nop                             ; Small Delay
-            nop                             ; Small Delay
-            nop                             ; Small Delay
-            nop                             ; Small Delay
-            nop                             ; Small Delay
-            nop                             ; Small Delay
-;------------------------------------------------------------------------------
-            ret
-
-;------------------------------------------------------------------------------
-;                   LCD - Write Subroutine
-;------------------------------------------------------------------------------
-;                   P2.0 = ENABLE
-;                   P2.1 = RESGISTER SELECT
-;                   R14  = SYMBOL (LETTER/NUMBER)
-;------------------------------------------------------------------------------
-WRITELCD    mov.b   R14, &P1OUT             ; Load SYMBOL in Port 1
-            bis.b   #02h, &P2OUT            ; Turn on REGISTER SELECT
+WRT_CMD_LCD mov.b   R14, &P1OUT             ; Load COMMAND in Port 1
             bis.b   #01h, &P2OUT            ; Turn on ENABLE
 ;------------------------------------------------------------------------------
 ;                   Delay >= 300ns          Really small!

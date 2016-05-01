@@ -66,22 +66,6 @@ lcdcmd      MACRO   CMD
             ENDM
 
 ;------------------------------------------------------------------------------
-;                   Declare ABS Macro
-;                   NUM = NUMBER to calculate absolute value
-;------------------------------------------------------------------------------
-abs         MACRO   NUM
-            LOCAL   CONTINUE1, CONTINUE2
-            sub.b   #07, NUM                ; Subtract from 7
-            jn      CONTINUE1
-            jmp     CONTINUE2
-
-CONTINUE1   inv.b   NUM                     ; neg the value by 2's complement
-            inc.b   NUM                     ;
-
-CONTINUE2
-            ENDM
-
-;------------------------------------------------------------------------------
             ORG     0C000h                  ; Program Start
 ;------------------------------------------------------------------------------
 RESET       mov.w   #0280h, SP              ; Initialize Stackpointer
@@ -180,11 +164,13 @@ POLL2       bit.b   #04h, &P2IN             ; Poll Button 1
             jn      LOOPAGAIN               ; Start looping again
             jmp     ASKNEXTDIFF             ; Ask for next difficulty
 
-DIFFCHOSEN  delay   #6000                   ; Delay of 0.5s for debouncing
+DIFFCHOSEN  rla.b   R4                      ; For indexing address (16-bit)
+            mov.w   WHICHDELAY(R4), R4      ; R4 = Delay for chosen difficulty
+            delay   #6000                   ; Delay of 0.5s for debouncing
                                             ; Finished Decision Making
 
 ;------------------------------------------------------------------------------
-;                   Set initial Level to 1
+;                   Set initial Level to 0
 ;------------------------------------------------------------------------------
 ;                   R5  =  Level
 ;                   0   -  TRANSISTOR
@@ -244,11 +230,10 @@ MAINLOOP    lcdcmd  #01                     ; Send command to Clear Display
 ;------------------------------------------------------------------------------
 ;                   Start Counter and Select Number State
 ;------------------------------------------------------------------------------
-            bic.b   #04h, &P2SEL            ; Allow pin P2.2 to interrupt
-            bis.b   #04h, &P2IE             ; Enable local interrupt
-            bic.b   #0Ch, &P2IFG            ; Disable Interrupt Flag
+            bic.b   #04h, &P2IFG            ; Disable Interrupt Flag P2.2
+            bis.b   #04h, &P2IE             ; Enable local interrupt P2.2
 
-TOGGLE      delay   WHICHDELAY(R4)          ; Delay depending on difficulty
+TOGGLE      delay   R4                      ; Delay depending on difficulty
             lcdcmd  R6                      ; Send command to move cursor (back)
             lcdwrt  #020h                   ; Write character " " to LCD
 
@@ -265,17 +250,20 @@ TOGGLE1     lcdwrt  PIVOT                   ; Write charater PIVOT to LCD
 
 CONTINUE    sub.b   #0C0h, R6               ; Calculate offset, now R6  = Value
 
-            bis.b   #04h, &P2SEL            ; Don't Allow pin P2.2 to interrupt
-            bic.b   #04h, &P2IE             ; Disable local interrupt
-            bic.b   #0Ch, &P2IFG            ; Disable Interrupt Flag
+            bic.b   #04h, &P2IE             ; Disable local interrupt P2.2
 
             delay   #12000                  ; Wait 1 second to show number
             lcdcmd  #01h                    ; Send command to Clear Display
             delay   #180                    ; Delay of 15ms
+
 ;------------------------------------------------------------------------------
-;                   Calculate Absolute Value
+;                   Calculate Absolute Value of difference R6 - 7
 ;------------------------------------------------------------------------------
-            abs     R6                      ; Calculate absolute value
+            sub.b   #07, R6                 ; R6 - 7
+            jge     POS                     ; R6 - positive, do nothing
+NEG         inv.b   R6                      ; R6 - negative, then
+            inc.b   R6                      ; calculate 2's complement
+POS                                         ; Do nothing
 
 ;------------------------------------------------------------------------------
 ;                   Check Condition
@@ -381,7 +369,6 @@ WHICHDIFF   DW      MSGADVAN, MSGINTER, MSGBASIC
 WHICHLVL    DW      MSGLV0, MSGLV1, MSGLV2, MSGLV3, MSGLV4, MSGLV5, MSGLV6
             DW      MSGLV7
 WHICHDELAY  DW      1200, 2400, 4800        ; For Delays .1s, .2s, .4s
-                                            ; respectively
 
 ;------------------------------------------------------------------------------
 ;                   Static Messages - Cstring

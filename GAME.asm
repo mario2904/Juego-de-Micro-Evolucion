@@ -1,6 +1,6 @@
 #include    "msp430.h"
 ; *****************************************************************************
-; Description:
+; Connections:
 ;
 ;                -----------                   ----------
 ;               |msp430g2553|                 |   LCD    |
@@ -168,15 +168,14 @@ ASKNEXTDIFF rla.b   R4                      ; For indexing address (16-bit)
 
             lcdcmd  #080h                   ; Send command to move cursor 1st LN
             call    #WRITESTR               ; Write string in 1st line
+
 POLL2       bit.b   #04h, &P2IN             ; Poll Button 1
-            jz      DIFFCHOSEN              ; This line will change depending
-                                            ; on the button used
-                                            ; Active high or Active low
-            bit.b   #08h, &P2IN             ; Poll Button 2
-            jnz     POLL2                   ; This line will change depending
-                                            ; on the button used
-                                            ; Active high or Active low
-            delay   #6000                   ; Delay of 0.5s for debouncing
+            jz      DIFFCHOSEN              ; B1 Pressed, Exit loop
+            bit.b   #08h, &P2IN             ; B1 not Pressed, Poll Button 2
+            jnz     POLL2                   ; Nothing Pressed, keep polling
+
+            delay   #6000                   ; B2=NO Pressed
+                                            ; Delay of 0.5s for debouncing
             dec.b   R4                      ; Assume lower difficulty
             jn      LOOPAGAIN               ; Start looping again
             jmp     ASKNEXTDIFF             ; Ask for next difficulty
@@ -220,7 +219,7 @@ MAINLOOP    lcdcmd  #01                     ; Send command to Clear Display
             delay   #24000                  ; Wait 2 seconds to show message
 
 ;------------------------------------------------------------------------------
-;                   Start Counter and Select Number State
+;                   Show Instruction Message and Initialize Roulette
 ;------------------------------------------------------------------------------
             lcdcmd  #01h                    ; Send command to Clear Display
             delay   #180                    ; Delay of 15ms
@@ -237,34 +236,34 @@ MAINLOOP    lcdcmd  #01                     ; Send command to Clear Display
             mov.w   #MSGNUMBS, R13          ; Load Cstring of numbers message
             call    #WRITESTR               ; Write string in 1st line
 
-            mov.b   #0C0h, R15              ; Load DDRAM address of PIVOT in R15
-            lcdcmd  R15                     ; Send command to move cursor 2nd LN
+            mov.b   #0C0h, R6               ; Load DDRAM address of PIVOT in R6
+            lcdcmd  R6                      ; Send command to move cursor 2nd LN
 
             lcdwrt  PIVOT                   ; Write character PIVOT to LCD
 
 ;------------------------------------------------------------------------------
-;                   Start Counter
+;                   Start Counter and Select Number State
 ;------------------------------------------------------------------------------
             bic.b   #04h, &P2SEL            ; Allow pin P2.2 to interrupt
             bis.b   #04h, &P2IE             ; Enable local interrupt
             bic.b   #0Ch, &P2IFG            ; Disable Interrupt Flag
 
 TOGGLE      delay   WHICHDELAY(R4)          ; Delay depending on difficulty
-            lcdcmd  R15                     ; Send command to move cursor (back)
+            lcdcmd  R6                      ; Send command to move cursor (back)
             lcdwrt  #020h                   ; Write character " " to LCD
 
-            inc.b   R15                     ; Point to current cursor address
+            inc.b   R6                      ; Point to current cursor address
 
-            cmp.b   #0D0h, R15              ; LCD Address out of bounds?
+            cmp.b   #0D0h, R6               ; LCD Address out of bounds?
             jnz     TOGGLE1                 ; No, Continue
 
-            mov.b   #0C0h, R15              ; Yes, Load address of 1st character
-                                            ; of second line in R15
-            lcdcmd  R15                     ; Send command to move cursor
+            mov.b   #0C0h, R6               ; Yes, Load address of 1st character
+                                            ; of second line in R6
+            lcdcmd  R6                      ; Send command to move cursor
 TOGGLE1     lcdwrt  PIVOT                   ; Write charater PIVOT to LCD
             jmp     TOGGLE
 
-CONTINUE    sub.b   #0C0h, R15              ; Calculate offset, now R15 = Value
+CONTINUE    sub.b   #0C0h, R6               ; Calculate offset, now R6  = Value
 
             bis.b   #04h, &P2SEL            ; Don't Allow pin P2.2 to interrupt
             bic.b   #04h, &P2IE             ; Disable local interrupt
@@ -276,12 +275,12 @@ CONTINUE    sub.b   #0C0h, R15              ; Calculate offset, now R15 = Value
 ;------------------------------------------------------------------------------
 ;                   Calculate Absolute Value
 ;------------------------------------------------------------------------------
-            abs     R15                     ; Calculate absolute value
+            abs     R6                      ; Calculate absolute value
 
 ;------------------------------------------------------------------------------
 ;                   Check Condition
 ;------------------------------------------------------------------------------
-            cmp.b   CONDITION(R5), R15      ; R15 < CONDITION ?
+            cmp.b   CONDITION(R5), R6       ; R6  < CONDITION ?
             jl      YES                     ; YES
 NO          mov.b   FAILNEXT(R5), R5        ; NO, Level down
             cmp.b   #0h, R5                 ; Are you in level 0?

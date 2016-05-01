@@ -54,8 +54,8 @@ Registers:
 
 NAME    | WHERE                                 | Description
 __________________________________________________________________________________
-R15     | Throughout the game (Changes)         | Value of chosen number
 R14     | Subroutines COMMANDLCD and WRITELCD   | Used to pass value to subroutine
 R13     | Subroutine WRITESTR and WRITEMSG      | Used to pass value and as Iterator
 R4      | Throughout the game (Stays the same)  | Holds the value of difficulty
 R5      | Throughout the game (Changes)         | Holds the value of current level
+R6      | Throughout the game (Changes)         | Value of chosen number

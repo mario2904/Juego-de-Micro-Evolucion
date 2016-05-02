@@ -120,7 +120,7 @@ StopWDT     mov.w   #WDTPW+WDTHOLD, &WDTCTL ; Stop WDT
 ;------------------------------------------------------------------------------
 ;                   Show First Message
 ;------------------------------------------------------------------------------
-            mov.w   #MSGSTART, R13          ; Load Cstring of first message
+START       mov.w   #MSGSTART, R13          ; Load Cstring of first message
             call    #WRITEMSG               ; Write message
 POLL1       bit.b   #04h, &P2IN             ; Poll Button B1 until pressed
             jnz     POLL1                   ; Jump to keep polling
@@ -289,15 +289,19 @@ NOTYET      call    #WRITEMSG               ; Write message
 ;                   YOU WON STATE
 ;------------------------------------------------------------------------------
 YOUWON      mov.w   #MSGWON, R13            ; Load Cstring of You Won! message
-            call    #WRITEMSG               ; Write message
-            jmp     $                       ; END! (endless loop)
+            jmp     PLAYAGAIN               ;
 
 ;------------------------------------------------------------------------------
 ;                   YOU LOST STATE
 ;------------------------------------------------------------------------------
 YOULOST     mov.w   #MSGLOST, R13           ; Load Cstring of You Lost! message
-            call    #WRITEMSG               ; Write message
-            jmp     $                       ; END! (endless loop)
+
+;------------------------------------------------------------------------------
+;                   PLAYAGAIN!
+;------------------------------------------------------------------------------
+PLAYAGAIN   call    #WRITEMSG               ; Write message
+            delay   #24000                  ; Wait 2 seconds to show message
+            jmp     START                   ; Play again!
 
 ;------------------------------------------------------------------------------
 ;                   SUBROUTINES

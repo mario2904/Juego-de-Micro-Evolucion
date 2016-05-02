@@ -1,6 +1,7 @@
-#include    "msp430.h"
 ; *****************************************************************************
-; Connections:
+;Description: This is a simple game called: El Juego de la Micro-Evolucion.
+;             Player starts off in level 0 - Transistor and has to evolve
+;             until he reaches level 7 - MCU.
 ;
 ;                -----------                   ----------
 ;               |msp430g2553|                 |   LCD    |
@@ -28,13 +29,21 @@
 ;                                 |    |
 ;                                   GND
 ;
-;Description: This is a simple game called: El Juego de la Micro-Evolucion
 ;
-;
+;   Mario Orbegoso Villanueva
+;   April 2016
+;   Built with IAR Embedded Workbench Version: 6.40
 ; *****************************************************************************
+#include    "msp430.h"
+
 ;------------------------------------------------------------------------------
-;                   Declare DELAY Macro
-;                   COUNT = Value to count up to
+;///////////////////DECLARE MACROS/////////////////////////////////////////////
+;------------------------------------------------------------------------------
+
+;------------------------------------------------------------------------------
+; Description: Generates a delay using a timer
+;------------------------------------------------------------------------------
+;                   COUNT = Value that the Timer will count up to
 ;------------------------------------------------------------------------------
 delay       MACRO   COUNT
             mov.w   COUNT, TA0CCR0          ; Set Count limit
@@ -44,7 +53,8 @@ delay       MACRO   COUNT
             ENDM
 
 ;------------------------------------------------------------------------------
-;                   Declare WRITE Macro
+; Description: Writes an ASCII character on the LCD
+;------------------------------------------------------------------------------
 ;                   CHAR = ASCII value of character to write in LCD
 ;                   R14  = (CHARACTER) DATUM to pass to the LCD
 ;------------------------------------------------------------------------------
@@ -55,7 +65,8 @@ lcdwrt      MACRO   CHAR
             ENDM
 
 ;------------------------------------------------------------------------------
-;                   Declare COMMAND Macro
+; Description: Sends a command to the LCD
+;------------------------------------------------------------------------------
 ;                   CMD = COMMAND to send the LCD
 ;                   R14 = (COMMAND) DATUM to pass to the LCD
 ;------------------------------------------------------------------------------
@@ -64,6 +75,10 @@ lcdcmd      MACRO   CMD
             mov.b   CMD, R14                ; Load command CMD
             call    #WRT_CMD_LCD            ; Send command CMD to LCD
             ENDM
+
+;------------------------------------------------------------------------------
+;///////////////////START MAIN PROGRAM/////////////////////////////////////////
+;------------------------------------------------------------------------------
 
 ;------------------------------------------------------------------------------
             ORG     0C000h                  ; Program Start
@@ -304,11 +319,11 @@ PLAYAGAIN   call    #WRITEMSG               ; Write message
             jmp     START                   ; Play again!
 
 ;------------------------------------------------------------------------------
-;                   SUBROUTINES
+;///////////////////SUBROUTINES////////////////////////////////////////////////
 ;------------------------------------------------------------------------------
 
 ;------------------------------------------------------------------------------
-;                   LCD - Write 1 line string Message
+; Description: Write 1 line string Message on the LCD
 ;------------------------------------------------------------------------------
 ;                   R13 = Pointer to message Cstring
 ;------------------------------------------------------------------------------
@@ -318,7 +333,7 @@ WRITESTR    lcdwrt  @R13+                   ; Write charater to LCD
             ret
 
 ;------------------------------------------------------------------------------
-;                   LCD - Write 2 line Message
+; Description: Write 2 line string Message on the LCD
 ;------------------------------------------------------------------------------
 ;                   R13 = Pointer to message Cstring
 ;------------------------------------------------------------------------------
@@ -332,7 +347,7 @@ WRITEMSG    lcdcmd  #01h                    ; Send command to Clear Display
             ret
 
 ;------------------------------------------------------------------------------
-;                   LCD - WRITE_OR_COMMAND Subroutine
+; Description: Loads COMMAND/CHARACTER and sends appropiate signals to LCD
 ;------------------------------------------------------------------------------
 ;                   P2.0 = ENABLE
 ;                   P2.1 = RESGISTER SELECT
@@ -349,7 +364,7 @@ WRT_CMD_LCD mov.b   R14, &P1OUT             ; Load COMMAND/CHARACTER in Port 1
             ret
 
 ;------------------------------------------------------------------------------
-;                   ISR of TA0 - Delay
+; Description: ISR of Timer TA0 - Stop Timer, Disable GIE and Wake up from LPM0
 ;------------------------------------------------------------------------------
 TA0CCR0_ISR mov.w   #0, TA0CCR0             ; Stop Timer
             bic.w   #GIE+LPM0, 0(SP)        ; Disable interrupts and
@@ -357,7 +372,8 @@ TA0CCR0_ISR mov.w   #0, TA0CCR0             ; Stop Timer
             reti
 
 ;------------------------------------------------------------------------------
-;                   ISR of Push Button B1 - Pin P2.2
+; Description: ISR of Push Button B1 - Stop Timer, Disable GIE,
+               Wake up from LPM0 and jump to address CONTINUE
 ;------------------------------------------------------------------------------
 PB_ISR      bic.b   #04h, &P2IFG            ; Disable Interrupt Flag of P2.2
             mov.w   #0, TA0CCR0             ; Stop Timer
@@ -365,6 +381,10 @@ PB_ISR      bic.b   #04h, &P2IFG            ; Disable Interrupt Flag of P2.2
                                             ; Get out of Low power mode
             mov.w   #CONTINUE, 2(SP)        ; After reti, go to Address CONTINUE
             reti
+
+;------------------------------------------------------------------------------
+;///////////////////DATA MEMORY////////////////////////////////////////////////
+;------------------------------------------------------------------------------
 
 ;------------------------------------------------------------------------------
 ;                   Switch Statements

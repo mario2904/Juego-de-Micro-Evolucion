@@ -373,7 +373,7 @@ TA0CCR0_ISR mov.w   #0, TA0CCR0             ; Stop Timer
 
 ;------------------------------------------------------------------------------
 ; Description: ISR of Push Button B1 - Stop Timer, Disable GIE,
-               Wake up from LPM0 and jump to address CONTINUE
+;              Wake up from LPM0 and jump to address CONTINUE
 ;------------------------------------------------------------------------------
 PB_ISR      bic.b   #04h, &P2IFG            ; Disable Interrupt Flag of P2.2
             mov.w   #0, TA0CCR0             ; Stop Timer
